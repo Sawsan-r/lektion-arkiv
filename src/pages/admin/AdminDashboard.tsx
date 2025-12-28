@@ -147,18 +147,25 @@ const AdminDashboard = () => {
     
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("teacher_invitations")
         .insert({
           email: inviteEmail,
           organization_id: selectedOrg,
-        });
+        })
+        .select("token")
+        .single();
 
       if (error) throw error;
 
+      const inviteLink = `${window.location.origin}/invite?token=${data.token}`;
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(inviteLink);
+
       toast({ 
-        title: "Inbjudan skapad", 
-        description: `Inbjudningslänk skapad för ${inviteEmail}. (E-postutskick kommer snart)` 
+        title: "Inbjudan skapad!", 
+        description: `Länken har kopierats till urklipp. Skicka den till ${inviteEmail}.` 
       });
       setInviteEmail("");
       setIsInviteOpen(false);
