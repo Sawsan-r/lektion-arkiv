@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { GraduationCap, Users, Shield, Mic, Play, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -16,13 +17,16 @@ const Landing = () => {
           </div>
           <span className="font-bold text-xl text-foreground">LektionsLyft</span>
         </div>
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate("/auth")}
-          className="font-medium"
-        >
-          Logga in
-        </Button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate("/auth")}
+            className="font-medium"
+          >
+            Logga in
+          </Button>
+        </div>
       </header>
 
       {/* Hero */}
