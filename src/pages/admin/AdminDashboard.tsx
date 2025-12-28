@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -19,55 +19,172 @@ import {
   LogOut, 
   Mail,
   GraduationCap,
-  ChevronRight 
+  ChevronRight,
+  Loader2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
-// Demo data
-const demoOrganizations = [
-  { id: "1", name: "Sundbybergs Gymnasium", teachers: 12, classes: 8, students: 245 },
-  { id: "2", name: "Vallentuna Skola", teachers: 8, classes: 5, students: 156 },
-];
+interface Organization {
+  id: string;
+  name: string;
+  region: string | null;
+  teacher_count: number;
+  student_count: number;
+  class_count: number;
+}
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [organizations, setOrganizations] = useState(demoOrganizations);
+  const { signOut } = useAuth();
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [newOrgName, setNewOrgName] = useState("");
+  const [newOrgRegion, setNewOrgRegion] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCreateOrg = () => {
+  useEffect(() => {
+    fetchOrganizations();
+  }, []);
+
+  const fetchOrganizations = async () => {
+    try {
+      const { data: orgs, error } = await supabase
+        .from("organizations")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Get counts for each organization
+      const orgsWithCounts = await Promise.all(
+        (orgs || []).map(async (org) => {
+          const [teacherResult, classResult] = await Promise.all([
+            supabase
+              .from("profiles")
+              .select("id", { count: "exact", head: true })
+              .eq("organization_id", org.id),
+            supabase
+              .from("classes")
+              .select("id", { count: "exact", head: true })
+              .eq("organization_id", org.id),
+          ]);
+
+          // Get student count from class_members for this org's classes
+          const { data: classIds } = await supabase
+            .from("classes")
+            .select("id")
+            .eq("organization_id", org.id);
+
+          let studentCount = 0;
+          if (classIds && classIds.length > 0) {
+            const { count } = await supabase
+              .from("class_members")
+              .select("student_id", { count: "exact", head: true })
+              .in("class_id", classIds.map(c => c.id));
+            studentCount = count || 0;
+          }
+
+          return {
+            ...org,
+            teacher_count: teacherResult.count || 0,
+            class_count: classResult.count || 0,
+            student_count: studentCount,
+          };
+        })
+      );
+
+      setOrganizations(orgsWithCounts);
+    } catch (error) {
+      console.error("Error fetching organizations:", error);
+      toast({ title: "Fel", description: "Kunde inte hämta organisationer", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateOrg = async () => {
     if (!newOrgName.trim()) return;
     
-    setOrganizations([
-      ...organizations,
-      { 
-        id: Date.now().toString(), 
-        name: newOrgName, 
-        teachers: 0, 
-        classes: 0, 
-        students: 0 
-      }
-    ]);
-    setNewOrgName("");
-    setIsCreateOpen(false);
-    toast({ title: "Organisation skapad", description: newOrgName });
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase
+        .from("organizations")
+        .insert({
+          name: newOrgName,
+          region: newOrgRegion || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setOrganizations([
+        { ...data, teacher_count: 0, class_count: 0, student_count: 0 },
+        ...organizations,
+      ]);
+      setNewOrgName("");
+      setNewOrgRegion("");
+      setIsCreateOpen(false);
+      toast({ title: "Organisation skapad", description: newOrgName });
+    } catch (error) {
+      console.error("Error creating organization:", error);
+      toast({ title: "Fel", description: "Kunde inte skapa organisationen", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleInviteTeacher = () => {
+  const handleInviteTeacher = async () => {
     if (!inviteEmail.trim() || !selectedOrg) return;
     
-    toast({ 
-      title: "Inbjudan skickad", 
-      description: `E-post skickad till ${inviteEmail}` 
-    });
-    setInviteEmail("");
-    setIsInviteOpen(false);
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("teacher_invitations")
+        .insert({
+          email: inviteEmail,
+          organization_id: selectedOrg,
+        });
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Inbjudan skapad", 
+        description: `Inbjudningslänk skapad för ${inviteEmail}. (E-postutskick kommer snart)` 
+      });
+      setInviteEmail("");
+      setIsInviteOpen(false);
+    } catch (error) {
+      console.error("Error creating invitation:", error);
+      toast({ title: "Fel", description: "Kunde inte skapa inbjudan", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  const totalTeachers = organizations.reduce((a, o) => a + o.teacher_count, 0);
+  const totalStudents = organizations.reduce((a, o) => a + o.student_count, 0);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -83,7 +200,7 @@ const AdminDashboard = () => {
               <p className="text-xs text-muted-foreground">System Admin</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="icon" onClick={handleLogout}>
             <LogOut className="w-5 h-5" />
           </Button>
         </div>
@@ -99,12 +216,12 @@ const AdminDashboard = () => {
             icon={<Building2 className="w-4 h-4" />}
           />
           <StatCard 
-            value={organizations.reduce((a, o) => a + o.teachers, 0).toString()} 
+            value={totalTeachers.toString()} 
             label="Lärare" 
             icon={<Users className="w-4 h-4" />}
           />
           <StatCard 
-            value={organizations.reduce((a, o) => a + o.students, 0).toString()} 
+            value={totalStudents.toString()} 
             label="Elever" 
             icon={<Users className="w-4 h-4" />}
           />
@@ -137,72 +254,92 @@ const AdminDashboard = () => {
                       onChange={(e) => setNewOrgName(e.target.value)}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Kommun / Region (valfritt)</Label>
+                    <Input
+                      placeholder="T.ex. Stockholms län"
+                      value={newOrgRegion}
+                      onChange={(e) => setNewOrgRegion(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleCreateOrg}>Skapa</Button>
+                  <Button onClick={handleCreateOrg} disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Skapa"}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
 
-          <div className="space-y-2">
-            {organizations.map((org) => (
-              <Card key={org.id} className="border-0 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-                        <Building2 className="w-6 h-6 text-primary" />
+          {organizations.length === 0 ? (
+            <Card className="border-2 border-dashed">
+              <CardContent className="p-8 text-center text-muted-foreground">
+                <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Inga organisationer ännu</p>
+                <p className="text-sm">Klicka på "Ny skola" för att skapa den första</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {organizations.map((org) => (
+                <Card key={org.id} className="border-0 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
+                          <Building2 className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{org.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {org.teacher_count} lärare · {org.student_count} elever
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-medium">{org.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {org.teachers} lärare · {org.students} elever
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Dialog open={isInviteOpen && selectedOrg === org.id} onOpenChange={(open) => {
-                        setIsInviteOpen(open);
-                        if (open) setSelectedOrg(org.id);
-                      }}>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="icon">
-                            <Mail className="w-4 h-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Bjud in lärare</DialogTitle>
-                            <DialogDescription>
-                              Skicka inbjudan till {org.name}
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                              <Label>Lärarens e-post</Label>
-                              <Input
-                                type="email"
-                                placeholder="larare@skola.se"
-                                value={inviteEmail}
-                                onChange={(e) => setInviteEmail(e.target.value)}
-                              />
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button onClick={handleInviteTeacher}>
-                              Skicka inbjudan
+                      <div className="flex items-center gap-2">
+                        <Dialog open={isInviteOpen && selectedOrg === org.id} onOpenChange={(open) => {
+                          setIsInviteOpen(open);
+                          if (open) setSelectedOrg(org.id);
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="icon">
+                              <Mail className="w-4 h-4" />
                             </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Bjud in lärare</DialogTitle>
+                              <DialogDescription>
+                                Skicka inbjudan till {org.name}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="space-y-2">
+                                <Label>Lärarens e-post</Label>
+                                <Input
+                                  type="email"
+                                  placeholder="larare@skola.se"
+                                  value={inviteEmail}
+                                  onChange={(e) => setInviteEmail(e.target.value)}
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button onClick={handleInviteTeacher} disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Skicka inbjudan"}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

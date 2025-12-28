@@ -1,37 +1,64 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog";
 import { 
   ArrowLeft, 
   Mic, 
   Square, 
   Pause, 
   Play,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useRecorder } from "@/hooks/useRecorder";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const RecordLesson = () => {
   const navigate = useNavigate();
   const { classId } = useParams();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const recorder = useRecorder();
   
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [seconds, setSeconds] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [className, setClassName] = useState("");
+  const [lessonTitle, setLessonTitle] = useState("");
+  const [lessonSubject, setLessonSubject] = useState("");
+  const [showTitleDialog, setShowTitleDialog] = useState(false);
+  const [createdLessonId, setCreatedLessonId] = useState<string | null>(null);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRecording && !isPaused) {
-      interval = setInterval(() => {
-        setSeconds((s) => s + 1);
-      }, 1000);
+    if (classId) {
+      fetchClassName();
     }
-    return () => clearInterval(interval);
-  }, [isRecording, isPaused]);
+  }, [classId]);
+
+  const fetchClassName = async () => {
+    const { data } = await supabase
+      .from("classes")
+      .select("name")
+      .eq("id", classId)
+      .single();
+    
+    if (data) {
+      setClassName(data.name);
+    }
+  };
 
   const formatTime = (totalSeconds: number) => {
     const hrs = Math.floor(totalSeconds / 3600);
@@ -44,28 +71,117 @@ const RecordLesson = () => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    toast({ title: "Inspelning startad" });
+  const handleStartRecording = async () => {
+    await recorder.startRecording();
+    if (!recorder.error) {
+      toast({ title: "Inspelning startad" });
+    } else {
+      toast({ 
+        title: "Kunde inte starta inspelning", 
+        description: recorder.error,
+        variant: "destructive"
+      });
+    }
   };
 
   const handlePauseResume = () => {
-    setIsPaused(!isPaused);
+    if (recorder.isPaused) {
+      recorder.resumeRecording();
+    } else {
+      recorder.pauseRecording();
+    }
   };
 
   const handleStopRecording = () => {
-    setIsRecording(false);
+    // Show dialog to get lesson title before stopping
+    setShowTitleDialog(true);
+  };
+
+  const handleSaveLesson = async () => {
+    if (!lessonTitle.trim() || !classId || !user) {
+      toast({ title: "Fel", description: "Ange en titel för lektionen", variant: "destructive" });
+      return;
+    }
+
+    setShowTitleDialog(false);
     setIsProcessing(true);
-    
-    // Simulate AI processing
-    setTimeout(() => {
+
+    try {
+      // Stop recording and get audio blob
+      const audioBlob = await recorder.stopRecording();
+      
+      // Create lesson record
+      const { data: lesson, error: lessonError } = await supabase
+        .from("lessons")
+        .insert({
+          class_id: classId,
+          title: lessonTitle,
+          subject: lessonSubject || null,
+          duration_seconds: recorder.seconds,
+          status: "recording",
+        })
+        .select()
+        .single();
+
+      if (lessonError) throw lessonError;
+
+      setCreatedLessonId(lesson.id);
+
+      // Upload audio if we have it
+      if (audioBlob && audioBlob.size > 0) {
+        const fileName = `${lesson.id}.webm`;
+        const { error: uploadError } = await supabase.storage
+          .from("lesson-audio")
+          .upload(fileName, audioBlob, {
+            contentType: "audio/webm",
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          // Continue anyway, audio upload is not critical
+        } else {
+          // Get public URL and update lesson
+          const { data: urlData } = supabase.storage
+            .from("lesson-audio")
+            .getPublicUrl(fileName);
+
+          await supabase
+            .from("lessons")
+            .update({ audio_url: urlData.publicUrl })
+            .eq("id", lesson.id);
+        }
+      }
+
+      // Trigger AI processing in background
+      try {
+        await supabase.functions.invoke("process-lesson", {
+          body: { lessonId: lesson.id },
+        });
+      } catch (aiError) {
+        console.error("AI processing error:", aiError);
+        // Update status to ready even if AI fails
+        await supabase
+          .from("lessons")
+          .update({ status: "ready" })
+          .eq("id", lesson.id);
+      }
+
       setIsProcessing(false);
       setIsComplete(true);
       toast({ 
         title: "Lektion sparad!", 
         description: "AI-sammanfattning skapas i bakgrunden" 
       });
-    }, 3000);
+    } catch (error) {
+      console.error("Error saving lesson:", error);
+      setIsProcessing(false);
+      toast({ 
+        title: "Fel", 
+        description: "Kunde inte spara lektionen", 
+        variant: "destructive" 
+      });
+    }
   };
 
   if (isComplete) {
@@ -79,7 +195,7 @@ const RecordLesson = () => {
             <div className="space-y-2">
               <h1 className="text-2xl font-bold">Lektion sparad!</h1>
               <p className="text-muted-foreground">
-                Längd: {formatTime(seconds)}
+                {lessonTitle} • {formatTime(recorder.seconds)}
               </p>
               <p className="text-sm text-muted-foreground">
                 AI-sammanfattning och transkribering bearbetas. 
@@ -103,13 +219,13 @@ const RecordLesson = () => {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardContent className="p-8 text-center space-y-6">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto animate-pulse">
-              <Mic className="w-10 h-10 text-primary" />
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold">Bearbetar...</h1>
+              <h1 className="text-2xl font-bold">Sparar...</h1>
               <p className="text-muted-foreground">
-                Sparar inspelning och förbereder AI-analys
+                Laddar upp inspelning och förbereder AI-analys
               </p>
             </div>
           </CardContent>
@@ -121,30 +237,43 @@ const RecordLesson = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="p-4 safe-area-top">
+      <header className="p-4 safe-area-top flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/teacher")}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
+        {className && (
+          <span className="text-sm text-muted-foreground">{className}</span>
+        )}
       </header>
 
       {/* Content */}
       <main className="flex-1 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md space-y-8 text-center">
+          {/* Error message */}
+          {recorder.error && (
+            <Card className="border-destructive bg-destructive/10">
+              <CardContent className="p-4 flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+                <p className="text-sm text-destructive">{recorder.error}</p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Timer */}
           <div className="space-y-2">
             <p className="text-6xl font-bold font-mono tabular-nums">
-              {formatTime(seconds)}
+              {formatTime(recorder.seconds)}
             </p>
             <p className="text-muted-foreground">
-              {isRecording 
-                ? (isPaused ? "Pausad" : "Spelar in...") 
+              {recorder.isRecording 
+                ? (recorder.isPaused ? "Pausad" : "Spelar in...") 
                 : "Redo att spela in"}
             </p>
           </div>
 
           {/* Recording Button */}
           <div className="flex flex-col items-center gap-4">
-            {!isRecording ? (
+            {!recorder.isRecording ? (
               <Button
                 size="lg"
                 className="w-32 h-32 rounded-full bg-accent hover:bg-accent/90 shadow-lg"
@@ -160,7 +289,7 @@ const RecordLesson = () => {
                   className="w-20 h-20 rounded-full"
                   onClick={handlePauseResume}
                 >
-                  {isPaused ? (
+                  {recorder.isPaused ? (
                     <Play className="w-8 h-8" />
                   ) : (
                     <Pause className="w-8 h-8" />
@@ -179,7 +308,7 @@ const RecordLesson = () => {
 
           {/* Instructions */}
           <div className="text-sm text-muted-foreground space-y-1">
-            {!isRecording ? (
+            {!recorder.isRecording ? (
               <>
                 <p>Tryck på mikrofonen för att börja spela in</p>
                 <p>Hela lektionen sparas och transkriberas automatiskt</p>
@@ -193,6 +322,45 @@ const RecordLesson = () => {
           </div>
         </div>
       </main>
+
+      {/* Title Dialog */}
+      <Dialog open={showTitleDialog} onOpenChange={setShowTitleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Spara lektion</DialogTitle>
+            <DialogDescription>
+              Ge lektionen ett namn så eleverna vet vad den handlar om
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Lektionstitel *</Label>
+              <Input
+                placeholder="T.ex. Ekvationer och olikheter"
+                value={lessonTitle}
+                onChange={(e) => setLessonTitle(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Ämne (valfritt)</Label>
+              <Input
+                placeholder="T.ex. Matematik"
+                value={lessonSubject}
+                onChange={(e) => setLessonSubject(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTitleDialog(false)}>
+              Avbryt
+            </Button>
+            <Button onClick={handleSaveLesson} disabled={!lessonTitle.trim()}>
+              Spara lektion
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
