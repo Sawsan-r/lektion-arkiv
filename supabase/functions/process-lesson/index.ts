@@ -1,3 +1,4 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
@@ -11,20 +12,21 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestBody = await req.json();
+  const { lessonId } = requestBody;
+
   try {
-    const { lessonId } = await req.json();
-    
     if (!lessonId) {
       throw new Error("lessonId is required");
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      throw new Error("AI service not configured");
+    if (!OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY is not configured");
+      throw new Error("OpenAI API key not configured");
     }
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
@@ -49,76 +51,66 @@ serve(async (req) => {
       .update({ status: "processing" })
       .eq("id", lessonId);
 
-    // Generate a realistic transcription for the lesson
-    // Note: For production, you would use OpenAI Whisper API to transcribe actual audio
-    // This requires the OPENAI_API_KEY secret to be configured
-    console.log("Generating transcription...");
-    
-    const transcribeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `Du är en transkriptionsassistent för svenska skollektioner. 
-Din uppgift är att generera en realistisk transkription som om den vore från en riktig lektionsinspelning.
+    let transcription = "";
 
-Transkriptionen ska:
-- Vara på svenska
-- Vara 800-1500 ord
-- Inkludera naturliga pauser markerade med [Paus]
-- Inkludera frågor från elever
-- Ha tydlig struktur med introduktion, huvudinnehåll och avslutning
-- Använda ett pedagogiskt och engagerande språk
-- Inkludera exempel och förklaringar anpassade för målgruppen`
-          },
-          {
-            role: "user",
-            content: `Generera en realistisk lektionstranskription för:
-
-Lektionstitel: ${lesson.title}
-Ämne: ${lesson.subject || 'Allmänt'}
-Längd: ${lesson.duration_seconds ? Math.round(lesson.duration_seconds / 60) + ' minuter' : '45 minuter'}
-Klass: ${(lesson.classes as any)?.name || 'Okänd klass'}
-
-Skapa en naturlig och pedagogisk transkription som en lärare skulle kunna ha sagt under lektionen.`
-          }
-        ],
-      }),
-    });
-
-    if (!transcribeResponse.ok) {
-      const errorText = await transcribeResponse.text();
-      console.error("Transcription error:", transcribeResponse.status, errorText);
+    // If we have an audio file, transcribe it with Whisper
+    if (lesson.audio_url) {
+      console.log("Downloading audio file:", lesson.audio_url);
       
-      if (transcribeResponse.status === 429) {
-        throw new Error("Rate limit - försök igen om en stund");
+      // Download audio file from storage
+      const { data: audioData, error: downloadError } = await supabase.storage
+        .from("lesson-audio")
+        .download(lesson.audio_url);
+
+      if (downloadError) {
+        console.error("Audio download error:", downloadError);
+        throw new Error(`Failed to download audio: ${downloadError.message}`);
       }
-      if (transcribeResponse.status === 402) {
-        throw new Error("AI-krediter slut - kontakta administratören");
+
+      console.log(`Audio file downloaded, size: ${audioData.size} bytes`);
+
+      // Prepare form data for Whisper API
+      const formData = new FormData();
+      formData.append("file", audioData, "audio.webm");
+      formData.append("model", "whisper-1");
+      formData.append("language", "sv"); // Swedish
+      formData.append("response_format", "text");
+
+      console.log("Sending to Whisper API for transcription...");
+
+      // Call Whisper API for transcription
+      const whisperResponse = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: formData,
+      });
+
+      if (!whisperResponse.ok) {
+        const errorText = await whisperResponse.text();
+        console.error("Whisper API error:", whisperResponse.status, errorText);
+        throw new Error(`Whisper API error: ${whisperResponse.status}`);
       }
-      throw new Error("Kunde inte generera transkription");
+
+      transcription = await whisperResponse.text();
+      console.log(`Transcription received, length: ${transcription.length} characters`);
+    } else {
+      console.log("No audio file found, creating placeholder transcription");
+      transcription = `[Ingen ljudfil tillgänglig för denna lektion. Titel: ${lesson.title}]`;
     }
 
-    const transcribeData = await transcribeResponse.json();
-    const transcription = transcribeData.choices?.[0]?.message?.content || "";
-    console.log("Transcription complete, length:", transcription.length);
-
-    // Generate summary based on transcription
-    console.log("Generating summary...");
-    const summaryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Generate summary using GPT
+    console.log("Generating summary with GPT...");
+    
+    const summaryResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -142,27 +134,28 @@ Inkludera alltid:
             role: "user",
             content: `Sammanfatta följande lektionstranskription för "${lesson.title}":
 
-${transcription}`
+Ämne: ${lesson.subject || "Ej angivet"}
+Klass: ${(lesson.classes as any)?.name || "Okänd klass"}
+
+Transkription:
+${transcription}
+
+Skapa en välstrukturerad sammanfattning som hjälper eleverna förstå och repetera lektionens innehåll.`
           }
         ],
+        max_tokens: 1500,
+        temperature: 0.7,
       }),
     });
 
     if (!summaryResponse.ok) {
       const errorText = await summaryResponse.text();
-      console.error("Summary error:", summaryResponse.status, errorText);
-      
-      if (summaryResponse.status === 429) {
-        throw new Error("Rate limit - försök igen om en stund");
-      }
-      if (summaryResponse.status === 402) {
-        throw new Error("AI-krediter slut - kontakta administratören");
-      }
-      throw new Error("Kunde inte generera sammanfattning");
+      console.error("GPT API error:", summaryResponse.status, errorText);
+      throw new Error(`GPT API error: ${summaryResponse.status}`);
     }
 
     const summaryData = await summaryResponse.json();
-    const summary = summaryData.choices?.[0]?.message?.content || "";
+    const summary = summaryData.choices?.[0]?.message?.content || "Kunde inte skapa sammanfattning.";
     console.log("Summary complete, length:", summary.length);
 
     // Update lesson with transcription and summary
@@ -195,20 +188,17 @@ ${transcription}`
   } catch (error) {
     console.error("Error processing lesson:", error);
     
-    // Try to update lesson status to error
+    // Update lesson status to error
     try {
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
       const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
       
-      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-        const { lessonId } = await new Response(req.body).json().catch(() => ({}));
-        if (lessonId) {
-          const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-          await supabase
-            .from("lessons")
-            .update({ status: "error" })
-            .eq("id", lessonId);
-        }
+      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && lessonId) {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        await supabase
+          .from("lessons")
+          .update({ status: "error" })
+          .eq("id", lessonId);
       }
     } catch (e) {
       console.error("Could not update lesson status:", e);
