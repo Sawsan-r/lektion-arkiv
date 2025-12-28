@@ -7,6 +7,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import TeacherInvite from "./pages/TeacherInvite";
+import JoinClass from "./pages/JoinClass";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import RecordLesson from "./pages/teacher/RecordLesson";
@@ -28,6 +30,10 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/login" element={<Auth />} />
+            
+            {/* Public onboarding routes */}
+            <Route path="/invite" element={<TeacherInvite />} />
+            <Route path="/join" element={<JoinClass />} />
             
             {/* Admin routes */}
             <Route path="/admin" element={

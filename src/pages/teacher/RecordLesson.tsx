@@ -40,6 +40,8 @@ const RecordLesson = () => {
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonSubject, setLessonSubject] = useState("");
   const [showTitleDialog, setShowTitleDialog] = useState(false);
+  const [showConsentDialog, setShowConsentDialog] = useState(true);
+  const [hasConsented, setHasConsented] = useState(false);
   const [createdLessonId, setCreatedLessonId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -357,6 +359,49 @@ const RecordLesson = () => {
             </Button>
             <Button onClick={handleSaveLesson} disabled={!lessonTitle.trim()}>
               Spara lektion
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* GDPR Consent Dialog */}
+      <Dialog open={showConsentDialog && !hasConsented} onOpenChange={setShowConsentDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Samtycke till inspelning</DialogTitle>
+            <DialogDescription>
+              Viktigt information innan du börjar spela in
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 text-sm text-muted-foreground">
+            <p>
+              <strong className="text-foreground">Vad spelas in?</strong><br />
+              Hela lektionens ljud sparas och bearbetas av AI för att skapa transkription och sammanfattning.
+            </p>
+            <p>
+              <strong className="text-foreground">Vem har tillgång?</strong><br />
+              Endast du (läraren) och elever som är med i denna klass kan se och lyssna på lektionen.
+            </p>
+            <p>
+              <strong className="text-foreground">GDPR & Sekretess</strong><br />
+              All data lagras säkert och i enlighet med GDPR. Du kan när som helst radera en lektion.
+            </p>
+            <p className="text-xs">
+              Genom att fortsätta bekräftar du att du har informerat deltagarna om inspelningen.
+            </p>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => navigate("/teacher")} className="w-full sm:w-auto">
+              Avbryt
+            </Button>
+            <Button 
+              onClick={() => {
+                setHasConsented(true);
+                setShowConsentDialog(false);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Jag förstår, fortsätt
             </Button>
           </DialogFooter>
         </DialogContent>

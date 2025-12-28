@@ -19,14 +19,17 @@ import {
   Mic,
   GraduationCap,
   ChevronRight,
-  QrCode,
+  QrCode as QrCodeIcon,
   BookOpen,
-  Loader2
+  Loader2,
+  Copy,
+  Check
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { QRCodeSVG } from "qrcode.react";
 
 interface ClassData {
   id: string;
@@ -274,7 +277,7 @@ const TeacherDashboard = () => {
                         }}>
                           <DialogTrigger asChild>
                             <Button variant="outline" size="icon">
-                              <QrCode className="w-4 h-4" />
+                              <QrCodeIcon className="w-4 h-4" />
                             </Button>
                           </DialogTrigger>
                           <DialogContent>
@@ -284,15 +287,7 @@ const TeacherDashboard = () => {
                                 Elever skannar denna kod för att gå med
                               </DialogDescription>
                             </DialogHeader>
-                            <div className="py-6 flex flex-col items-center gap-4">
-                              <div className="w-48 h-48 bg-muted rounded-2xl flex items-center justify-center">
-                                <QrCode className="w-32 h-32 text-foreground" />
-                              </div>
-                              <div className="text-center">
-                                <p className="text-sm text-muted-foreground">Klasskod</p>
-                                <p className="font-mono text-2xl font-bold">{cls.join_code}</p>
-                              </div>
-                            </div>
+                            <QRCodeDisplay joinCode={cls.join_code} />
                           </DialogContent>
                         </Dialog>
                         <Button 
@@ -325,5 +320,51 @@ const StatCard = ({ value, label }: { value: string; label: string }) => (
     </CardContent>
   </Card>
 );
+
+const QRCodeDisplay = ({ joinCode }: { joinCode: string }) => {
+  const [copied, setCopied] = useState(false);
+  const joinUrl = `${window.location.origin}/join?code=${joinCode}`;
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(joinUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="py-6 flex flex-col items-center gap-4">
+      <div className="p-4 bg-white rounded-2xl">
+        <QRCodeSVG 
+          value={joinUrl} 
+          size={180}
+          level="M"
+          includeMargin={false}
+        />
+      </div>
+      <div className="text-center space-y-2">
+        <p className="text-sm text-muted-foreground">Klasskod</p>
+        <p className="font-mono text-2xl font-bold tracking-wider">{joinCode}</p>
+      </div>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={handleCopy}
+        className="gap-2"
+      >
+        {copied ? (
+          <>
+            <Check className="w-4 h-4" />
+            Kopierad!
+          </>
+        ) : (
+          <>
+            <Copy className="w-4 h-4" />
+            Kopiera länk
+          </>
+        )}
+      </Button>
+    </div>
+  );
+};
 
 export default TeacherDashboard;
