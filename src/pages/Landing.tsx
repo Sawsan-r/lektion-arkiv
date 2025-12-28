@@ -16,7 +16,7 @@ const Landing = () => {
           </div>
           <span className="font-semibold text-lg">LektionsLyft</span>
         </div>
-        <Button variant="ghost" onClick={() => navigate("/login")}>
+        <Button variant="ghost" onClick={() => navigate("/auth")}>
           Logga in
         </Button>
       </header>
@@ -63,7 +63,7 @@ const Landing = () => {
             <Button 
               size="lg" 
               className="w-full touch-target text-lg bg-accent hover:bg-accent/90"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/auth")}
             >
               Kom igång
             </Button>
