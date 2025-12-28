@@ -11,6 +11,7 @@ import TeacherInvite from "./pages/TeacherInvite";
 import JoinClass from "./pages/JoinClass";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
+import ClassLessons from "./pages/teacher/ClassLessons";
 import RecordLesson from "./pages/teacher/RecordLesson";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import ClassView from "./pages/student/ClassView";
@@ -50,7 +51,7 @@ const App = () => (
             } />
             <Route path="/teacher/class/:classId" element={
               <ProtectedRoute requiredRole="teacher">
-                <TeacherDashboard />
+                <ClassLessons />
               </ProtectedRoute>
             } />
             <Route path="/teacher/record/:classId" element={
