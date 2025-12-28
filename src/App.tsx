@@ -3,8 +3,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
-import Login from "./pages/Login";
+import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import RecordLesson from "./pages/teacher/RecordLesson";
@@ -17,24 +19,62 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/teacher" element={<TeacherDashboard />} />
-          <Route path="/teacher/class/:classId" element={<TeacherDashboard />} />
-          <Route path="/teacher/record/:classId" element={<RecordLesson />} />
-          <Route path="/student" element={<StudentDashboard />} />
-          <Route path="/student/class/:classId" element={<ClassView />} />
-          <Route path="/student/lesson/:lessonId" element={<LessonView />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/login" element={<Auth />} />
+            
+            {/* Admin routes */}
+            <Route path="/admin" element={
+              <ProtectedRoute requiredRole="system_admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            
+            {/* Teacher routes */}
+            <Route path="/teacher" element={
+              <ProtectedRoute requiredRole="teacher">
+                <TeacherDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/class/:classId" element={
+              <ProtectedRoute requiredRole="teacher">
+                <TeacherDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/record/:classId" element={
+              <ProtectedRoute requiredRole="teacher">
+                <RecordLesson />
+              </ProtectedRoute>
+            } />
+            
+            {/* Student routes */}
+            <Route path="/student" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <StudentDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/student/class/:classId" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <ClassView />
+              </ProtectedRoute>
+            } />
+            <Route path="/student/lesson/:lessonId" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <LessonView />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
