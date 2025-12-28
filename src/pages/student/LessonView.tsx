@@ -38,6 +38,18 @@ const LessonView = () => {
       .select("*")
       .eq("id", lessonId)
       .single();
+    
+    if (data && data.audio_url) {
+      // Generate a signed URL for the audio file (valid for 1 hour)
+      const { data: signedUrlData } = await supabase.storage
+        .from("lesson-audio")
+        .createSignedUrl(data.audio_url, 3600);
+      
+      if (signedUrlData) {
+        data.audio_url = signedUrlData.signedUrl;
+      }
+    }
+    
     setLesson(data);
     setIsLoading(false);
   };
