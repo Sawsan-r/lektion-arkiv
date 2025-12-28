@@ -201,18 +201,18 @@ const StudentDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-card border-b px-4 py-3 safe-area-top">
+      <header className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b px-4 py-3 safe-area-top">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-primary-foreground" />
+            <div className="w-11 h-11 rounded-2xl bg-primary flex items-center justify-center shadow-md">
+              <GraduationCap className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-semibold">Mina lektioner</h1>
+              <h1 className="font-bold text-lg">Mina lektioner</h1>
               <p className="text-xs text-muted-foreground">Välkommen tillbaka!</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground">
             <LogOut className="w-5 h-5" />
           </Button>
         </div>
@@ -223,10 +223,10 @@ const StudentDashboard = () => {
         {/* Join Class */}
         <Dialog open={isJoinOpen} onOpenChange={setIsJoinOpen}>
           <DialogTrigger asChild>
-            <Card className="border-2 border-dashed border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors">
-              <CardContent className="p-4 flex items-center justify-center gap-2 text-primary">
+            <Card className="border-2 border-dashed border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-all hover:scale-[1.02] animate-slide-up">
+              <CardContent className="p-5 flex items-center justify-center gap-2 text-primary">
                 <Plus className="w-5 h-5" />
-                <span className="font-medium">Gå med i en klass</span>
+                <span className="font-semibold">Gå med i en klass</span>
               </CardContent>
             </Card>
           </DialogTrigger>
@@ -243,13 +243,13 @@ const StudentDashboard = () => {
                   placeholder="Ange klasskod"
                   value={classCode}
                   onChange={(e) => setClassCode(e.target.value.toUpperCase())}
-                  className="text-center font-mono text-lg"
+                  className="text-center font-mono text-xl tracking-widest h-14"
                   maxLength={6}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleJoinClass} className="w-full" disabled={isSubmitting}>
+              <Button onClick={handleJoinClass} className="w-full touch-target" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Gå med"}
               </Button>
             </DialogFooter>
@@ -257,33 +257,36 @@ const StudentDashboard = () => {
         </Dialog>
 
         {/* Classes */}
-        <div className="space-y-3">
-          <h2 className="font-semibold text-lg">Dina klasser</h2>
+        <div className="space-y-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <h2 className="font-bold text-xl">Dina klasser</h2>
           
           {classes.length === 0 ? (
-            <Card className="border-2 border-dashed">
-              <CardContent className="p-8 text-center text-muted-foreground">
-                <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Du har inte gått med i någon klass ännu</p>
-                <p className="text-sm">Använd en klasskod från din lärare för att gå med</p>
+            <Card className="border-2 border-dashed border-border/60">
+              <CardContent className="p-10 text-center text-muted-foreground">
+                <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
+                  <BookOpen className="w-8 h-8 text-primary/60" />
+                </div>
+                <p className="font-medium text-foreground">Ingen klass ännu</p>
+                <p className="text-sm mt-1">Använd en klasskod från din lärare för att gå med</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-2">
-              {classes.map((cls) => (
+            <div className="space-y-3">
+              {classes.map((cls, index) => (
                 <Card 
                   key={cls.id} 
-                  className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                  className="border-0 shadow-md cursor-pointer card-hover"
+                  style={{ animationDelay: `${index * 0.05}s` }}
                   onClick={() => navigate(`/student/class/${cls.id}`)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-                          <BookOpen className="w-6 h-6 text-primary" />
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center">
+                          <BookOpen className="w-7 h-7 text-primary" />
                         </div>
                         <div>
-                          <h3 className="font-medium">{cls.name}</h3>
+                          <h3 className="font-semibold text-foreground">{cls.name}</h3>
                           <p className="text-sm text-muted-foreground">
                             {cls.teacher_name}
                           </p>
@@ -291,13 +294,13 @@ const StudentDashboard = () => {
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right">
-                          <p className="text-sm font-medium">{cls.lesson_count}</p>
+                          <p className="text-lg font-bold text-primary">{cls.lesson_count}</p>
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             {formatDate(cls.last_lesson_date)}
                           </p>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                        <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
                       </div>
                     </div>
                   </CardContent>
