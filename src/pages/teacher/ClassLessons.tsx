@@ -164,8 +164,30 @@ const ClassLessons = () => {
         return { icon: Loader2, label: "Bearbetar...", color: "text-primary", spin: true };
       case "recording":
         return { icon: Loader2, label: "Laddar upp...", color: "text-muted-foreground", spin: true };
+      case "error":
+        return { icon: AlertCircle, label: "Fel - Tryck för att försöka igen", color: "text-destructive" };
       default:
-        return { icon: AlertCircle, label: "Fel", color: "text-destructive" };
+        return { icon: AlertCircle, label: "Okänd status", color: "text-muted-foreground" };
+    }
+  };
+
+  const retryProcessing = async (lessonId: string) => {
+    try {
+      toast({ title: "Försöker igen..." });
+      
+      await supabase
+        .from("lessons")
+        .update({ status: "processing" })
+        .eq("id", lessonId);
+
+      await supabase.functions.invoke("process-lesson", {
+        body: { lessonId },
+      });
+
+      toast({ title: "Bearbetning startad" });
+    } catch (error) {
+      console.error("Error retrying:", error);
+      toast({ title: "Fel", description: "Kunde inte starta om bearbetningen", variant: "destructive" });
     }
   };
 
@@ -249,6 +271,19 @@ const ClassLessons = () => {
                             <FileText className="w-3 h-3" />
                             <span>Sammanfattning klar</span>
                           </div>
+                        )}
+                        {lesson.status === "error" && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2 h-7 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              retryProcessing(lesson.id);
+                            }}
+                          >
+                            Försök igen
+                          </Button>
                         )}
                       </div>
                       <DropdownMenu>
