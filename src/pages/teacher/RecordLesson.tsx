@@ -143,14 +143,10 @@ const RecordLesson = () => {
           console.error("Upload error:", uploadError);
           // Continue anyway, audio upload is not critical
         } else {
-          // Get public URL and update lesson
-          const { data: urlData } = supabase.storage
-            .from("lesson-audio")
-            .getPublicUrl(fileName);
-
+          // Store the file path (not URL) - we'll generate signed URLs when needed
           await supabase
             .from("lessons")
-            .update({ audio_url: urlData.publicUrl })
+            .update({ audio_url: fileName })
             .eq("id", lesson.id);
         }
       }
