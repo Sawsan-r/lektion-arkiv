@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, FileText, Mic, Loader2 } from "lucide-react";
+import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, FileText, Mic, Loader2, Speech } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface LessonData {
   id: string;
@@ -20,16 +21,26 @@ interface LessonData {
 const LessonView = () => {
   const navigate = useNavigate();
   const { lessonId } = useParams();
+  const { toast } = useToast();
   const [lesson, setLesson] = useState<LessonData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     if (lessonId) fetchLesson();
+    
+    return () => {
+      // Cleanup speech synthesis on unmount
+      if (speechRef.current) {
+        window.speechSynthesis.cancel();
+      }
+    };
   }, [lessonId]);
 
   const fetchLesson = async () => {
@@ -40,7 +51,6 @@ const LessonView = () => {
       .single();
     
     if (data && data.audio_url) {
-      // Generate a signed URL for the audio file (valid for 1 hour)
       const { data: signedUrlData } = await supabase.storage
         .from("lesson-audio")
         .createSignedUrl(data.audio_url, 3600);
@@ -109,6 +119,53 @@ const LessonView = () => {
   const handleEnded = () => {
     setIsPlaying(false);
     setCurrentTime(0);
+  };
+
+  // Text-to-speech for summary
+  const toggleSpeakSummary = () => {
+    if (!lesson?.summary) return;
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    // Check if speech synthesis is supported
+    if (!('speechSynthesis' in window)) {
+      toast({ 
+        title: "Ej stöd", 
+        description: "Din webbläsare stöder inte text-till-tal", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Clean up markdown formatting for speech
+    const cleanText = lesson.summary
+      .replace(/^##\s+/gm, '')
+      .replace(/^###\s+/gm, '')
+      .replace(/^-\s+/gm, '')
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '');
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'sv-SE';
+    utterance.rate = 0.9;
+    
+    // Try to find a Swedish voice
+    const voices = window.speechSynthesis.getVoices();
+    const swedishVoice = voices.find(v => v.lang.startsWith('sv'));
+    if (swedishVoice) {
+      utterance.voice = swedishVoice;
+    }
+
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    speechRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
   };
 
   const renderMarkdown = (text: string) => {
@@ -203,7 +260,18 @@ const LessonView = () => {
           </TabsList>
           <TabsContent value="summary" className="flex-1 overflow-auto m-0 p-4 animate-fade-in">
             {lesson.summary ? (
-              <div className="prose prose-sm max-w-none">{renderMarkdown(lesson.summary)}</div>
+              <div className="space-y-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={toggleSpeakSummary}
+                  className={`gap-2 ${isSpeaking ? 'bg-primary text-primary-foreground' : ''}`}
+                >
+                  <Speech className="w-4 h-4" />
+                  {isSpeaking ? "Stoppa uppläsning" : "Lyssna på sammanfattning"}
+                </Button>
+                <div className="prose prose-sm max-w-none">{renderMarkdown(lesson.summary)}</div>
+              </div>
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" />
