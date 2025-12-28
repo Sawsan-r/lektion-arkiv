@@ -70,12 +70,14 @@ const LessonView = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="sticky top-0 z-10 bg-card border-b px-4 py-3 safe-area-top">
+      <header className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b px-4 py-3 safe-area-top">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="w-5 h-5" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <div>
-            <h1 className="font-semibold">{lesson.title}</h1>
-            <p className="text-xs text-muted-foreground">{formatDate(lesson.recorded_at)} · {formatDuration(lesson.duration_seconds)}</p>
+            <h1 className="font-bold text-lg">{lesson.title}</h1>
+            <p className="text-sm text-muted-foreground">{formatDate(lesson.recorded_at)} · {formatDuration(lesson.duration_seconds)}</p>
           </div>
         </div>
       </header>
@@ -83,16 +85,26 @@ const LessonView = () => {
       {lesson.audio_url && (
         <div className="bg-card border-b p-4">
           <audio ref={audioRef} src={lesson.audio_url} />
-          <Card className="border-0 shadow-sm bg-secondary/50">
-            <CardContent className="p-4 space-y-4">
+          <Card className="border-0 shadow-md bg-secondary/30">
+            <CardContent className="p-5 space-y-4">
               <Slider value={progress} onValueChange={setProgress} max={100} step={1} className="w-full" />
               <div className="flex items-center justify-center gap-4">
-                <Button variant="ghost" size="icon"><SkipBack className="w-5 h-5" /></Button>
-                <Button size="lg" className="w-14 h-14 rounded-full" onClick={() => setIsPlaying(!isPlaying)}>
-                  {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
+                <Button variant="ghost" size="icon" className="rounded-xl">
+                  <SkipBack className="w-5 h-5" />
                 </Button>
-                <Button variant="ghost" size="icon"><SkipForward className="w-5 h-5" /></Button>
-                <Button variant="ghost" size="icon"><Volume2 className="w-5 h-5" /></Button>
+                <Button 
+                  size="lg" 
+                  className="w-16 h-16 rounded-full bg-accent hover:bg-accent/90 btn-glow" 
+                  onClick={() => setIsPlaying(!isPlaying)}
+                >
+                  {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
+                </Button>
+                <Button variant="ghost" size="icon" className="rounded-xl">
+                  <SkipForward className="w-5 h-5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="rounded-xl">
+                  <Volume2 className="w-5 h-5" />
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -101,15 +113,35 @@ const LessonView = () => {
 
       <div className="flex-1 overflow-hidden">
         <Tabs defaultValue="summary" className="h-full flex flex-col">
-          <TabsList className="w-full justify-start px-4 py-2 h-auto bg-transparent border-b rounded-none">
-            <TabsTrigger value="summary" className="gap-2 data-[state=active]:bg-secondary"><FileText className="w-4 h-4" />Sammanfattning</TabsTrigger>
-            <TabsTrigger value="transcript" className="gap-2 data-[state=active]:bg-secondary"><Mic className="w-4 h-4" />Transkription</TabsTrigger>
+          <TabsList className="w-full justify-start px-4 py-3 h-auto bg-transparent border-b rounded-none gap-2">
+            <TabsTrigger value="summary" className="gap-2 rounded-xl data-[state=active]:bg-secondary data-[state=active]:shadow-sm">
+              <FileText className="w-4 h-4" />
+              Sammanfattning
+            </TabsTrigger>
+            <TabsTrigger value="transcript" className="gap-2 rounded-xl data-[state=active]:bg-secondary data-[state=active]:shadow-sm">
+              <Mic className="w-4 h-4" />
+              Transkription
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="summary" className="flex-1 overflow-auto m-0 p-4">
-            {lesson.summary ? renderMarkdown(lesson.summary) : <p className="text-muted-foreground">Sammanfattning bearbetas...</p>}
+          <TabsContent value="summary" className="flex-1 overflow-auto m-0 p-4 animate-fade-in">
+            {lesson.summary ? (
+              <div className="prose prose-sm max-w-none">{renderMarkdown(lesson.summary)}</div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" />
+                <p>Sammanfattning bearbetas...</p>
+              </div>
+            )}
           </TabsContent>
-          <TabsContent value="transcript" className="flex-1 overflow-auto m-0 p-4">
-            {lesson.transcription ? <div className="text-sm leading-relaxed whitespace-pre-line">{lesson.transcription}</div> : <p className="text-muted-foreground">Transkription bearbetas...</p>}
+          <TabsContent value="transcript" className="flex-1 overflow-auto m-0 p-4 animate-fade-in">
+            {lesson.transcription ? (
+              <div className="text-sm leading-relaxed whitespace-pre-line text-foreground">{lesson.transcription}</div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" />
+                <p>Transkription bearbetas...</p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

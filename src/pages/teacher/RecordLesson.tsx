@@ -189,14 +189,14 @@ const RecordLesson = () => {
   if (isComplete) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <Card className="w-full max-w-md border-0 shadow-lg animate-slide-up">
+        <Card className="w-full max-w-md border-0 shadow-lg animate-scale-in">
           <CardContent className="p-8 text-center space-y-6">
-            <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-10 h-10 text-success" />
+            <div className="w-24 h-24 rounded-full bg-success/15 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-12 h-12 text-success" />
             </div>
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold">Lektion sparad!</h1>
-              <p className="text-muted-foreground">
+            <div className="space-y-3">
+              <h1 className="text-2xl font-bold text-foreground">Lektion sparad!</h1>
+              <p className="text-lg text-muted-foreground">
                 {lessonTitle} • {formatTime(recorder.seconds)}
               </p>
               <p className="text-sm text-muted-foreground">
@@ -205,7 +205,7 @@ const RecordLesson = () => {
               </p>
             </div>
             <Button 
-              className="w-full touch-target"
+              className="w-full touch-target font-semibold"
               onClick={() => navigate("/teacher")}
             >
               Tillbaka till klasser
@@ -221,11 +221,11 @@ const RecordLesson = () => {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardContent className="p-8 text-center space-y-6">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <Loader2 className="w-12 h-12 text-primary animate-spin" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold">Sparar...</h1>
+              <h1 className="text-2xl font-bold text-foreground">Sparar...</h1>
               <p className="text-muted-foreground">
                 Laddar upp inspelning och förbereder AI-analys
               </p>
@@ -240,17 +240,17 @@ const RecordLesson = () => {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="p-4 safe-area-top flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/teacher")}>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/teacher")} className="rounded-xl">
           <ArrowLeft className="w-5 h-5" />
         </Button>
         {className && (
-          <span className="text-sm text-muted-foreground">{className}</span>
+          <span className="font-medium text-muted-foreground">{className}</span>
         )}
       </header>
 
       {/* Content */}
       <main className="flex-1 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-8 text-center">
+        <div className="w-full max-w-md space-y-10 text-center">
           {/* Error message */}
           {recorder.error && (
             <Card className="border-destructive bg-destructive/10">
@@ -262,11 +262,11 @@ const RecordLesson = () => {
           )}
 
           {/* Timer */}
-          <div className="space-y-2">
-            <p className="text-6xl font-bold font-mono tabular-nums">
+          <div className="space-y-3">
+            <p className="text-7xl font-bold font-mono tabular-nums text-foreground">
               {formatTime(recorder.seconds)}
             </p>
-            <p className="text-muted-foreground">
+            <p className={`text-lg font-medium ${recorder.isRecording && !recorder.isPaused ? 'text-accent' : 'text-muted-foreground'}`}>
               {recorder.isRecording 
                 ? (recorder.isPaused ? "Pausad" : "Spelar in...") 
                 : "Redo att spela in"}
@@ -274,50 +274,50 @@ const RecordLesson = () => {
           </div>
 
           {/* Recording Button */}
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-6">
             {!recorder.isRecording ? (
               <Button
                 size="lg"
-                className="w-32 h-32 rounded-full bg-accent hover:bg-accent/90 shadow-lg"
+                className="w-36 h-36 rounded-full bg-accent hover:bg-accent/90 shadow-xl btn-glow"
                 onClick={handleStartRecording}
               >
-                <Mic className="w-12 h-12" />
+                <Mic className="w-14 h-14" />
               </Button>
             ) : (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-6">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-20 h-20 rounded-full"
+                  className="w-20 h-20 rounded-full border-2"
                   onClick={handlePauseResume}
                 >
                   {recorder.isPaused ? (
-                    <Play className="w-8 h-8" />
+                    <Play className="w-8 h-8 ml-1" />
                   ) : (
                     <Pause className="w-8 h-8" />
                   )}
                 </Button>
                 <Button
                   size="lg"
-                  className="w-24 h-24 rounded-full bg-destructive hover:bg-destructive/90 shadow-lg animate-pulse-record"
+                  className="w-28 h-28 rounded-full bg-destructive hover:bg-destructive/90 shadow-xl animate-pulse-record"
                   onClick={handleStopRecording}
                 >
-                  <Square className="w-10 h-10" />
+                  <Square className="w-12 h-12" />
                 </Button>
               </div>
             )}
           </div>
 
           {/* Instructions */}
-          <div className="text-sm text-muted-foreground space-y-1">
+          <div className="text-sm text-muted-foreground space-y-2">
             {!recorder.isRecording ? (
               <>
-                <p>Tryck på mikrofonen för att börja spela in</p>
+                <p className="font-medium">Tryck på mikrofonen för att börja</p>
                 <p>Hela lektionen sparas och transkriberas automatiskt</p>
               </>
             ) : (
               <>
-                <p>Tryck på stoppknappen när lektionen är klar</p>
+                <p className="font-medium">Tryck på stopp när lektionen är klar</p>
                 <p>Du kan pausa inspelningen om du behöver</p>
               </>
             )}
