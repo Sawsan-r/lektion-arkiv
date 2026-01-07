@@ -62,7 +62,7 @@ const StudentDashboard = () => {
             id,
             name,
             teacher_id,
-            profiles!classes_teacher_id_fkey (full_name)
+            profiles!classes_teacher_id_profiles_fkey (full_name)
           )
         `)
         .eq("student_id", user.id);
@@ -110,7 +110,7 @@ const StudentDashboard = () => {
       // Find class by join code
       const { data: classData, error: classError } = await supabase
         .from("classes")
-        .select("id, name, teacher_id, profiles!classes_teacher_id_fkey(full_name)")
+        .select("id, name, teacher_id, profiles!classes_teacher_id_profiles_fkey(full_name)")
         .eq("join_code", classCode.toUpperCase())
         .maybeSingle();
 

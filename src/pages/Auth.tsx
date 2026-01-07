@@ -42,30 +42,66 @@ const Auth = () => {
   const handleJoinClassAfterLogin = async () => {
     setIsProcessingJoin(true);
     try {
-      // Assign student role (upsert to avoid conflicts)
-      await supabase.from("user_roles").upsert(
-        { user_id: user!.id, role: "student" as const },
-        { onConflict: "user_id,role" }
-      );
+      // Step 1: Assign student role
+      const { error: roleError } = await supabase.from("user_roles").insert({
+        user_id: user!.id,
+        role: "student" as const,
+      });
+      
+      // Ignore duplicate key error (user already has student role)
+      if (roleError && !roleError.message.includes('duplicate')) {
+        console.error("Error assigning role:", roleError);
+      }
 
-      // Find and join the class
-      const { data: classData } = await supabase
+      // Step 2: Find the class
+      const { data: classData, error: classError } = await supabase
         .from("classes")
         .select("id")
         .eq("join_code", joinCode!.toUpperCase())
         .maybeSingle();
 
-      if (classData) {
-        await supabase.from("class_members").upsert(
-          { class_id: classData.id, student_id: user!.id },
-          { onConflict: "class_id,student_id" }
-        );
+      if (classError) {
+        console.error("Error finding class:", classError);
+        toast({ 
+          title: "Fel", 
+          description: "Kunde inte hitta klassen", 
+          variant: "destructive" 
+        });
+        navigate("/student", { replace: true });
+        return;
+      }
+
+      if (!classData) {
+        toast({ 
+          title: "Fel", 
+          description: "Ogiltig klasskod", 
+          variant: "destructive" 
+        });
+        navigate("/student", { replace: true });
+        return;
+      }
+
+      // Step 3: Join the class
+      const { error: joinError } = await supabase.from("class_members").insert({
+        class_id: classData.id,
+        student_id: user!.id,
+      });
+
+      // Ignore duplicate key error (already a member)
+      if (joinError && !joinError.message.includes('duplicate')) {
+        console.error("Error joining class:", joinError);
+        toast({ 
+          title: "Fel", 
+          description: "Kunde inte gå med i klassen", 
+          variant: "destructive" 
+        });
+      } else {
         toast({ title: "Du har gått med i klassen!" });
       }
 
       navigate("/student", { replace: true });
     } catch (error) {
-      console.error("Error joining class:", error);
+      console.error("Error in join flow:", error);
       navigate("/student", { replace: true });
     }
   };
