@@ -1,11 +1,52 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Helper function to make Supabase REST API calls
+async function supabaseQuery(url: string, options: RequestInit = {}) {
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  const response = await fetch(`${SUPABASE_URL}${url}`, {
+    ...options,
+    headers: {
+      "apikey": SUPABASE_SERVICE_ROLE_KEY,
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=representation",
+      ...options.headers,
+    },
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Supabase error: ${response.status} - ${error}`);
+  }
+  
+  return response.json();
+}
+
+async function supabaseStorageDownload(bucket: string, path: string): Promise<Blob> {
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {
+    headers: {
+      "apikey": SUPABASE_SERVICE_ROLE_KEY,
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Storage download error: ${response.status}`);
+  }
+  
+  return response.blob();
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,35 +62,29 @@ serve(async (req) => {
     }
 
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!OPENAI_API_KEY) {
       console.error("OPENAI_API_KEY is not configured");
       throw new Error("OpenAI API key not configured");
     }
 
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-
     // Get lesson details
-    const { data: lesson, error: lessonError } = await supabase
-      .from("lessons")
-      .select("*, classes(name, teacher_id)")
-      .eq("id", lessonId)
-      .single();
-
-    if (lessonError || !lesson) {
-      console.error("Lesson not found:", lessonError);
+    const lessons = await supabaseQuery(
+      `/rest/v1/lessons?id=eq.${lessonId}&select=*,classes(name,teacher_id)`
+    );
+    
+    const lesson = lessons[0];
+    if (!lesson) {
       throw new Error("Lesson not found");
     }
 
     console.log(`Processing lesson: ${lesson.title} (${lessonId})`);
 
     // Update status to processing
-    await supabase
-      .from("lessons")
-      .update({ status: "processing" })
-      .eq("id", lessonId);
+    await supabaseQuery(`/rest/v1/lessons?id=eq.${lessonId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "processing" }),
+    });
 
     let transcription = "";
 
@@ -57,28 +92,18 @@ serve(async (req) => {
     if (lesson.audio_url) {
       console.log("Downloading audio file:", lesson.audio_url);
       
-      // Download audio file from storage
-      const { data: audioData, error: downloadError } = await supabase.storage
-        .from("lesson-audio")
-        .download(lesson.audio_url);
-
-      if (downloadError) {
-        console.error("Audio download error:", downloadError);
-        throw new Error(`Failed to download audio: ${downloadError.message}`);
-      }
-
+      const audioData = await supabaseStorageDownload("lesson-audio", lesson.audio_url);
       console.log(`Audio file downloaded, size: ${audioData.size} bytes`);
 
       // Prepare form data for Whisper API
       const formData = new FormData();
       formData.append("file", audioData, "audio.webm");
       formData.append("model", "whisper-1");
-      formData.append("language", "sv"); // Swedish
+      formData.append("language", "sv");
       formData.append("response_format", "text");
 
       console.log("Sending to Whisper API for transcription...");
 
-      // Call Whisper API for transcription
       const whisperResponse = await fetch("https://api.openai.com/v1/audio/transcriptions", {
         method: "POST",
         headers: {
@@ -135,7 +160,7 @@ Inkludera alltid:
             content: `Sammanfatta följande lektionstranskription för "${lesson.title}":
 
 Ämne: ${lesson.subject || "Ej angivet"}
-Klass: ${(lesson.classes as any)?.name || "Okänd klass"}
+Klass: ${lesson.classes?.name || "Okänd klass"}
 
 Transkription:
 ${transcription}
@@ -159,20 +184,15 @@ Skapa en välstrukturerad sammanfattning som hjälper eleverna förstå och repe
     console.log("Summary complete, length:", summary.length);
 
     // Update lesson with transcription and summary
-    const { error: updateError } = await supabase
-      .from("lessons")
-      .update({
+    await supabaseQuery(`/rest/v1/lessons?id=eq.${lessonId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
         transcription,
         summary,
         status: "ready",
         updated_at: new Date().toISOString(),
-      })
-      .eq("id", lessonId);
-
-    if (updateError) {
-      console.error("Update error:", updateError);
-      throw new Error("Kunde inte spara resultatet");
-    }
+      }),
+    });
 
     console.log(`Lesson ${lessonId} processed successfully`);
 
@@ -190,15 +210,11 @@ Skapa en välstrukturerad sammanfattning som hjälper eleverna förstå och repe
     
     // Update lesson status to error
     try {
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      
-      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && lessonId) {
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        await supabase
-          .from("lessons")
-          .update({ status: "error" })
-          .eq("id", lessonId);
+      if (lessonId) {
+        await supabaseQuery(`/rest/v1/lessons?id=eq.${lessonId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "error" }),
+        });
       }
     } catch (e) {
       console.error("Could not update lesson status:", e);
