@@ -38,3 +38,6 @@ enable_confirmations = false
 
 [functions.process-lesson]
 verify_jwt = true
+
+[functions.send-teacher-invite]
+verify_jwt = false
