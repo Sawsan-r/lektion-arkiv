@@ -13,11 +13,9 @@ import {
   DialogDescription
 } from "@/components/ui/dialog";
 import { 
-  Users, 
   Plus, 
   LogOut, 
   Mic,
-  GraduationCap,
   ChevronRight,
   QrCode as QrCodeIcon,
   BookOpen,
@@ -30,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
+import logo from "@/assets/logo.png";
 
 interface ClassData {
   id: string;
@@ -185,13 +184,7 @@ const TeacherDashboard = () => {
       <header className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b px-4 py-3 safe-area-top">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-primary flex items-center justify-center shadow-md">
-              <GraduationCap className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="font-bold text-lg">Mina klasser</h1>
-              <p className="text-xs text-muted-foreground">{organizationName || "Lärare"}</p>
-            </div>
+            <img src={logo} alt="Notera" className="h-9 w-auto" />
           </div>
           <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground">
             <LogOut className="w-5 h-5" />
