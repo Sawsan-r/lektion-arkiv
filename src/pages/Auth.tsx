@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { GraduationCap, ArrowLeft, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const emailSchema = z.string().email("Ogiltig e-postadress");
 const passwordSchema = z.string().min(6, "Lösenord måste vara minst 6 tecken");
@@ -24,15 +25,50 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string }>({});
+  const [isProcessingJoin, setIsProcessingJoin] = useState(false);
 
   const inviteToken = searchParams.get("invite");
+  const joinCode = searchParams.get("joinCode");
 
-  // Redirect authenticated users - wait for roles to be loaded
+  // Handle class join after login
   useEffect(() => {
-    if (user && !authLoading && roles.length > 0) {
+    if (user && !authLoading && joinCode && !isProcessingJoin) {
+      handleJoinClassAfterLogin();
+    } else if (user && !authLoading && roles.length > 0 && !joinCode) {
       redirectBasedOnRole();
     }
-  }, [user, authLoading, roles]);
+  }, [user, authLoading, roles, joinCode]);
+
+  const handleJoinClassAfterLogin = async () => {
+    setIsProcessingJoin(true);
+    try {
+      // Assign student role (upsert to avoid conflicts)
+      await supabase.from("user_roles").upsert(
+        { user_id: user!.id, role: "student" as const },
+        { onConflict: "user_id,role" }
+      );
+
+      // Find and join the class
+      const { data: classData } = await supabase
+        .from("classes")
+        .select("id")
+        .eq("join_code", joinCode!.toUpperCase())
+        .maybeSingle();
+
+      if (classData) {
+        await supabase.from("class_members").upsert(
+          { class_id: classData.id, student_id: user!.id },
+          { onConflict: "class_id,student_id" }
+        );
+        toast({ title: "Du har gått med i klassen!" });
+      }
+
+      navigate("/student", { replace: true });
+    } catch (error) {
+      console.error("Error joining class:", error);
+      navigate("/student", { replace: true });
+    }
+  };
 
   const redirectBasedOnRole = () => {
     if (roles.includes('system_admin')) {
@@ -42,11 +78,9 @@ const Auth = () => {
     } else if (roles.includes('student')) {
       navigate("/student", { replace: true });
     } else {
-      // No recognized role - stay on auth page
       navigate("/", { replace: true });
     }
   };
-
   const validateForm = () => {
     const newErrors: typeof errors = {};
     
