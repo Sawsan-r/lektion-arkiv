@@ -39,7 +39,7 @@ const ClassView = () => {
     try {
       const { data: classData } = await supabase
         .from("classes")
-        .select("name, profiles!classes_teacher_id_fkey(full_name)")
+        .select("name, profiles!classes_teacher_id_profiles_fkey(full_name)")
         .eq("id", classId)
         .single();
 
