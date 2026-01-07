@@ -134,7 +134,7 @@ const Auth = () => {
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
             <GraduationCap className="w-6 h-6 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-lg">LektionsLyft</span>
+          <span className="font-semibold text-lg">Notera</span>
         </div>
       </header>
 
@@ -147,7 +147,7 @@ const Auth = () => {
             </CardTitle>
             <CardDescription>
               {isLogin 
-                ? "Välkommen tillbaka till LektionsLyft" 
+                ? "Välkommen tillbaka till Notera" 
                 : inviteToken 
                   ? "Du har blivit inbjuden som lärare"
                   : "Skapa ett nytt konto"
