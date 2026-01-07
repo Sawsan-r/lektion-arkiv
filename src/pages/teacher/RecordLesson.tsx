@@ -141,14 +141,16 @@ const RecordLesson = () => {
 
         if (uploadError) {
           console.error("Upload error:", uploadError);
-          // Continue anyway, audio upload is not critical
-        } else {
-          // Store the file path (not URL) - we'll generate signed URLs when needed
-          await supabase
-            .from("lessons")
-            .update({ audio_url: fileName })
-            .eq("id", lesson.id);
+          // Delete the lesson record since audio upload failed
+          await supabase.from("lessons").delete().eq("id", lesson.id);
+          throw new Error("Kunde inte ladda upp ljudfilen. Försök igen.");
         }
+        
+        // Store the file path (not URL) - we'll generate signed URLs when needed
+        await supabase
+          .from("lessons")
+          .update({ audio_url: fileName })
+          .eq("id", lesson.id);
       }
 
       // Trigger AI processing in background
