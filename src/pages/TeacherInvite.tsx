@@ -205,7 +205,7 @@ const TeacherInvite = () => {
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <GraduationCap className="w-6 h-6 text-primary-foreground" />
         </div>
-        <span className="font-semibold text-lg">LektionsLyft</span>
+        <span className="font-semibold text-lg">Notera</span>
       </header>
 
       {/* Main content */}

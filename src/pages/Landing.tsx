@@ -15,7 +15,7 @@ const Landing = () => {
           <div className="w-11 h-11 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
             <GraduationCap className="w-6 h-6 text-primary-foreground" />
           </div>
-          <span className="font-bold text-xl text-foreground">LektionsLyft</span>
+          <span className="font-bold text-xl text-foreground">Notera</span>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -105,7 +105,7 @@ const Landing = () => {
 
       {/* Footer */}
       <footer className="p-4 text-center text-sm text-muted-foreground safe-area-bottom">
-        <p>© 2024 LektionsLyft UF – För svenska skolor</p>
+        <p>© 2025 Notera – För svenska skolor</p>
       </footer>
     </div>
   );

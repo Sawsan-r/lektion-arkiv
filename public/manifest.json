@@ -1,6 +1,6 @@
 {
-  "name": "LektionsLyft",
-  "short_name": "LektionsLyft",
+  "name": "Notera",
+  "short_name": "Notera",
   "description": "Spela in, transkribera och sammanfatta lektioner med AI",
   "start_url": "/",
   "display": "standalone",
