@@ -48,6 +48,21 @@ async function supabaseStorageDownload(bucket: string, path: string): Promise<Bl
   return response.blob();
 }
 
+// Convert blob to base64
+async function blobToBase64(blob: Blob): Promise<string> {
+  const arrayBuffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = "";
+  const chunkSize = 32768;
+  
+  for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.byteLength));
+    binary += String.fromCharCode(...chunk);
+  }
+  
+  return btoa(binary);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -61,11 +76,11 @@ serve(async (req) => {
       throw new Error("lessonId is required");
     }
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     
-    if (!OPENAI_API_KEY) {
-      console.error("OPENAI_API_KEY is not configured");
-      throw new Error("OpenAI API key not configured");
+    if (!GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not configured");
+      throw new Error("Gemini API key not configured");
     }
 
     // Get lesson details
@@ -87,101 +102,113 @@ serve(async (req) => {
     });
 
     let transcription = "";
+    let summary = "";
 
-    // If we have an audio file, transcribe it with Whisper
+    // If we have an audio file, process it with Gemini
     if (lesson.audio_url) {
       console.log("Downloading audio file:", lesson.audio_url);
       
       const audioData = await supabaseStorageDownload("lesson-audio", lesson.audio_url);
       console.log(`Audio file downloaded, size: ${audioData.size} bytes`);
 
-      // Prepare form data for Whisper API
-      const formData = new FormData();
-      formData.append("file", audioData, "audio.webm");
-      formData.append("model", "whisper-1");
-      formData.append("language", "sv");
-      formData.append("response_format", "text");
+      // Convert to base64 for Gemini API
+      const base64Audio = await blobToBase64(audioData);
+      console.log(`Audio converted to base64, length: ${base64Audio.length} characters`);
 
-      console.log("Sending to Whisper API for transcription...");
+      // Determine mime type (webm is common for browser recordings)
+      const mimeType = "audio/webm";
 
-      const whisperResponse = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: formData,
-      });
+      console.log("Sending to Gemini API for transcription and summarization...");
 
-      if (!whisperResponse.ok) {
-        const errorText = await whisperResponse.text();
-        console.error("Whisper API error:", whisperResponse.status, errorText);
-        throw new Error(`Whisper API error: ${whisperResponse.status}`);
-      }
+      // Single Gemini call for BOTH transcription and summary
+      const geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                {
+                  inline_data: {
+                    mime_type: mimeType,
+                    data: base64Audio,
+                  },
+                },
+                {
+                  text: `Du är en pedagogisk AI-assistent. Lyssna på denna ljudinspelning av en skollektion.
 
-      transcription = await whisperResponse.text();
-      console.log(`Transcription received, length: ${transcription.length} characters`);
-    } else {
-      console.log("No audio file found, creating placeholder transcription");
-      transcription = `[Ingen ljudfil tillgänglig för denna lektion. Titel: ${lesson.title}]`;
-    }
+UPPGIFT 1 - TRANSKRIPTION:
+Skapa en fullständig transkription av allt som sägs i inspelningen på svenska.
 
-    // Generate summary using GPT
-    console.log("Generating summary with GPT...");
-    
-    const summaryResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `Du är en pedagogisk AI-assistent som skapar sammanfattningar av skollektioner på svenska.
+UPPGIFT 2 - SAMMANFATTNING:
+Baserat på transkriptionen, skapa en strukturerad sammanfattning för elever som vill repetera materialet.
 
-Dina sammanfattningar ska vara:
-- Strukturerade med tydliga rubriker (använd ## för huvudrubriker och ### för underrubriker)
+Sammanfattningen ska vara:
+- Strukturerad med tydliga rubriker (## för huvudrubriker, ### för underrubriker)
 - Innehålla de viktigaste punkterna från lektionen
 - Använda punktlistor för att göra informationen lättläst
-- Anpassade för elever som vill repetera materialet
-- Koncisa men informativa (300-500 ord)
+- Koncis men informativ (300-500 ord)
 - På svenska
 
-Inkludera alltid:
+Inkludera i sammanfattningen:
 1. En kort översikt av vad lektionen handlade om
 2. De viktigaste begreppen/fakta som togs upp
 3. Eventuella exempel som nämndes
-4. Sammanfattande punkter att komma ihåg`
-          },
-          {
-            role: "user",
-            content: `Sammanfatta följande lektionstranskription för "${lesson.title}":
+4. Sammanfattande punkter att komma ihåg
 
-Ämne: ${lesson.subject || "Ej angivet"}
-Klass: ${lesson.classes?.name || "Okänd klass"}
+Lektionsinformation:
+- Titel: ${lesson.title}
+- Ämne: ${lesson.subject || "Ej angivet"}
+- Klass: ${lesson.classes?.name || "Okänd klass"}
 
-Transkription:
-${transcription}
+SVARA I FÖLJANDE FORMAT:
+---TRANSKRIPTION---
+[Full transkription här]
 
-Skapa en välstrukturerad sammanfattning som hjälper eleverna förstå och repetera lektionens innehåll.`
-          }
-        ],
-        max_tokens: 1500,
-        temperature: 0.7,
-      }),
-    });
+---SAMMANFATTNING---
+[Strukturerad sammanfattning här]`,
+                },
+              ],
+            }],
+            generationConfig: {
+              maxOutputTokens: 8192,
+              temperature: 0.3,
+            },
+          }),
+        }
+      );
 
-    if (!summaryResponse.ok) {
-      const errorText = await summaryResponse.text();
-      console.error("GPT API error:", summaryResponse.status, errorText);
-      throw new Error(`GPT API error: ${summaryResponse.status}`);
+      if (!geminiResponse.ok) {
+        const errorText = await geminiResponse.text();
+        console.error("Gemini API error:", geminiResponse.status, errorText);
+        throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
+      }
+
+      const geminiData = await geminiResponse.json();
+      console.log("Gemini response received");
+
+      const fullResponse = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      
+      if (!fullResponse) {
+        console.error("Empty response from Gemini:", JSON.stringify(geminiData));
+        throw new Error("Empty response from Gemini API");
+      }
+
+      // Parse the response to extract transcription and summary
+      const transcriptionMatch = fullResponse.match(/---TRANSKRIPTION---\s*([\s\S]*?)(?=---SAMMANFATTNING---|$)/);
+      const summaryMatch = fullResponse.match(/---SAMMANFATTNING---\s*([\s\S]*?)$/);
+      
+      transcription = transcriptionMatch?.[1]?.trim() || fullResponse;
+      summary = summaryMatch?.[1]?.trim() || "Kunde inte skapa sammanfattning.";
+      
+      console.log(`Transcription received, length: ${transcription.length} characters`);
+      console.log(`Summary received, length: ${summary.length} characters`);
+    } else {
+      console.log("No audio file found, creating placeholder");
+      transcription = `[Ingen ljudfil tillgänglig för denna lektion. Titel: ${lesson.title}]`;
+      summary = "Ingen sammanfattning tillgänglig - ljudfil saknas.";
     }
-
-    const summaryData = await summaryResponse.json();
-    const summary = summaryData.choices?.[0]?.message?.content || "Kunde inte skapa sammanfattning.";
-    console.log("Summary complete, length:", summary.length);
 
     // Update lesson with transcription and summary
     await supabaseQuery(`/rest/v1/lessons?id=eq.${lessonId}`, {
