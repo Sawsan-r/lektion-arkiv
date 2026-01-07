@@ -139,7 +139,7 @@ const JoinClass = () => {
             description: "Logga in istället och använd klasskoden för att gå med.",
             variant: "destructive"
           });
-          navigate("/auth");
+          navigate(`/auth?joinCode=${encodeURIComponent(code || '')}`);
           return;
         }
         throw authError;
