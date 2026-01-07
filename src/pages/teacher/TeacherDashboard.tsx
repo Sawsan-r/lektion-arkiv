@@ -110,7 +110,10 @@ const TeacherDashboard = () => {
       setClasses(classesWithCounts);
     } catch (error) {
       console.error("Error fetching classes:", error);
-      toast({ title: "Fel", description: "Kunde inte hämta klasser", variant: "destructive" });
+      // Only show error if we actually failed to fetch, not if there are no classes
+      if ((error as any)?.code !== 'PGRST116') {
+        toast({ title: "Fel", description: "Kunde inte hämta klasser", variant: "destructive" });
+      }
     } finally {
       setIsLoading(false);
     }

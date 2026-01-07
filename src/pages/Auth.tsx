@@ -27,23 +27,23 @@ const Auth = () => {
 
   const inviteToken = searchParams.get("invite");
 
-  // Redirect authenticated users
+  // Redirect authenticated users - wait for roles to be loaded
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user && !authLoading && roles.length > 0) {
       redirectBasedOnRole();
     }
   }, [user, authLoading, roles]);
 
   const redirectBasedOnRole = () => {
     if (roles.includes('system_admin')) {
-      navigate("/admin");
+      navigate("/admin", { replace: true });
     } else if (roles.includes('teacher')) {
-      navigate("/teacher");
+      navigate("/teacher", { replace: true });
     } else if (roles.includes('student')) {
-      navigate("/student");
+      navigate("/student", { replace: true });
     } else {
-      // Default to student if no role yet
-      navigate("/student");
+      // No recognized role - stay on auth page
+      navigate("/", { replace: true });
     }
   };
 
