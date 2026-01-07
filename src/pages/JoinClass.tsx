@@ -42,22 +42,34 @@ const JoinClass = () => {
 
   const fetchClassData = async () => {
     try {
+      console.log("Fetching class with code:", code?.toUpperCase());
+      
       const { data, error } = await supabase
         .from("classes")
         .select(`
           id, 
           name, 
-          profiles!classes_teacher_id_fkey(full_name),
+          profiles!classes_teacher_id_profiles_fkey(full_name),
           organizations(name)
         `)
         .eq("join_code", code?.toUpperCase())
         .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
+        console.error("Supabase error:", error);
         setClassData(null);
         setIsLoading(false);
         return;
       }
+
+      if (!data) {
+        console.log("No class found with code:", code?.toUpperCase());
+        setClassData(null);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("Fetched class data:", data);
 
       setClassData({
         id: data.id,
