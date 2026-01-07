@@ -34,7 +34,7 @@ serve(async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Klassrum <onboarding@resend.dev>",
+        from: "Notera <noreply@notera.info>",
         to: [email],
         subject: `Du är inbjuden till ${organization_name}`,
         html: `
