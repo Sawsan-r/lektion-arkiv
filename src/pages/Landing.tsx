@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { GraduationCap, Users, Shield, Mic, Play, ChevronRight } from "lucide-react";
+import { Users, Shield, Mic, Play, ChevronRight, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import logo from "@/assets/logo.png";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -11,11 +12,8 @@ const Landing = () => {
     <div className="min-h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <header className="p-4 md:p-6 flex items-center justify-between animate-slide-down">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
-            <GraduationCap className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-xl text-foreground">Notera</span>
+        <div className="flex items-center gap-2">
+          <img src={logo} alt="Notera" className="h-10 w-auto" />
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -62,7 +60,7 @@ const Landing = () => {
               delay={0}
             />
             <FeatureCard 
-              icon={<GraduationCap className="w-5 h-5" />}
+              icon={<Sparkles className="w-5 h-5" />}
               title="AI-sammanfattning"
               description="Automatiskt"
               delay={1}
