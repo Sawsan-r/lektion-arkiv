@@ -145,8 +145,12 @@ const AdminDashboard = () => {
   const handleInviteTeacher = async () => {
     if (!inviteEmail.trim() || !selectedOrg) return;
     
+    const org = organizations.find(o => o.id === selectedOrg);
+    if (!org) return;
+    
     setIsSubmitting(true);
     try {
+      // Create invitation record
       const { data, error } = await supabase
         .from("teacher_invitations")
         .insert({
@@ -160,13 +164,32 @@ const AdminDashboard = () => {
 
       const inviteLink = `${window.location.origin}/invite?token=${data.token}`;
       
-      // Copy to clipboard
-      await navigator.clipboard.writeText(inviteLink);
-
-      toast({ 
-        title: "Inbjudan skapad!", 
-        description: `Länken har kopierats till urklipp. Skicka den till ${inviteEmail}.` 
+      // Send email via edge function
+      const { error: emailError } = await supabase.functions.invoke("send-teacher-invite", {
+        body: {
+          email: inviteEmail,
+          organization_id: selectedOrg,
+          organization_name: org.name,
+          invite_link: inviteLink,
+        },
       });
+
+      if (emailError) {
+        console.error("Email sending failed:", emailError);
+        // Still copy link to clipboard as fallback
+        await navigator.clipboard.writeText(inviteLink);
+        toast({ 
+          title: "Inbjudan skapad", 
+          description: `E-post kunde inte skickas, men länken har kopierats till urklipp.`,
+          variant: "destructive"
+        });
+      } else {
+        toast({ 
+          title: "Inbjudan skickad!", 
+          description: `E-post har skickats till ${inviteEmail}.` 
+        });
+      }
+      
       setInviteEmail("");
       setIsInviteOpen(false);
     } catch (error) {
