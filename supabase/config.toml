@@ -37,7 +37,7 @@ double_confirm_changes = true
 enable_confirmations = false
 
 [functions.process-lesson]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-teacher-invite]
 verify_jwt = false
