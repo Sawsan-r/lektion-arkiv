@@ -171,11 +171,22 @@ const RecordLesson = () => {
       // Trigger AI processing in background
       try {
         console.log("Triggering AI processing for lesson:", lesson.id);
-        await supabase.functions.invoke("process-lesson", {
+        const { data, error: invokeError } = await supabase.functions.invoke("process-lesson", {
           body: { lessonId: lesson.id },
         });
+        
+        if (invokeError) {
+          console.error("AI processing invoke error:", invokeError);
+          // Update status to ready even if AI fails so the lesson is accessible
+          await supabase
+            .from("lessons")
+            .update({ status: "ready" })
+            .eq("id", lesson.id);
+        } else {
+          console.log("AI processing triggered successfully:", data);
+        }
       } catch (aiError) {
-        console.error("AI processing error:", aiError);
+        console.error("AI processing exception:", aiError);
         // Update status to ready even if AI fails
         await supabase
           .from("lessons")

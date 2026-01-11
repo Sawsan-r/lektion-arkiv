@@ -79,18 +79,18 @@ serve(async (req) => {
     );
   }
 
-  // Create a client with the user's token to verify identity
+  // Create a client to verify identity
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } }
+    Deno.env.get("SUPABASE_ANON_KEY")!
   );
 
-  // Verify the token and get user
-  const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+  // Verify the token by passing it directly to getUser
+  const token = authHeader.replace("Bearer ", "");
+  const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
   if (userError || !user) {
-    console.error("Invalid token:", userError?.message);
+    console.error("Invalid token:", userError?.message || "No user found");
     return new Response(
       JSON.stringify({ error: "Unauthorized - invalid token" }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
