@@ -111,8 +111,10 @@ const RecordLesson = () => {
     try {
       // Stop recording and get audio blob
       const audioBlob = await recorder.stopRecording();
+      console.log("Recording stopped, blob size:", audioBlob?.size || 0);
       
       // Create lesson record
+      console.log("Creating lesson record for class:", classId);
       const { data: lesson, error: lessonError } = await supabase
         .from("lessons")
         .insert({
@@ -125,13 +127,19 @@ const RecordLesson = () => {
         .select()
         .single();
 
-      if (lessonError) throw lessonError;
+      if (lessonError) {
+        console.error("Lesson insert error:", lessonError);
+        throw new Error(`Kunde inte skapa lektion: ${lessonError.message}`);
+      }
 
+      console.log("Lesson created:", lesson.id);
       setCreatedLessonId(lesson.id);
 
       // Upload audio if we have it
       if (audioBlob && audioBlob.size > 0) {
         const fileName = `${lesson.id}.webm`;
+        console.log("Uploading audio file:", fileName, "size:", audioBlob.size);
+        
         const { error: uploadError } = await supabase.storage
           .from("lesson-audio")
           .upload(fileName, audioBlob, {
@@ -143,18 +151,26 @@ const RecordLesson = () => {
           console.error("Upload error:", uploadError);
           // Delete the lesson record since audio upload failed
           await supabase.from("lessons").delete().eq("id", lesson.id);
-          throw new Error("Kunde inte ladda upp ljudfilen. Försök igen.");
+          throw new Error(`Kunde inte ladda upp ljudfilen: ${uploadError.message}`);
         }
         
+        console.log("Audio uploaded, updating lesson with audio_url");
+        
         // Store the file path (not URL) - we'll generate signed URLs when needed
-        await supabase
+        const { error: updateError } = await supabase
           .from("lessons")
           .update({ audio_url: fileName })
           .eq("id", lesson.id);
+        
+        if (updateError) {
+          console.error("Update audio_url error:", updateError);
+          throw new Error(`Kunde inte uppdatera lektion: ${updateError.message}`);
+        }
       }
 
       // Trigger AI processing in background
       try {
+        console.log("Triggering AI processing for lesson:", lesson.id);
         await supabase.functions.invoke("process-lesson", {
           body: { lessonId: lesson.id },
         });
@@ -176,9 +192,10 @@ const RecordLesson = () => {
     } catch (error) {
       console.error("Error saving lesson:", error);
       setIsProcessing(false);
+      const errorMessage = error instanceof Error ? error.message : "Kunde inte spara lektionen";
       toast({ 
         title: "Fel", 
-        description: "Kunde inte spara lektionen", 
+        description: errorMessage, 
         variant: "destructive" 
       });
     }
