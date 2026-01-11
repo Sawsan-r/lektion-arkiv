@@ -167,26 +167,27 @@ serve(async (req) => {
                   },
                 },
                 {
-                  text: `Du är en pedagogisk AI-assistent. Lyssna på denna ljudinspelning av en skollektion.
+                  text: `Du är en transkriptions- och sammanfattningsassistent. Din uppgift är att ENDAST återge vad som faktiskt sades i inspelningen - lägg INTE till egen information, förklaringar eller antaganden.
 
 UPPGIFT 1 - TRANSKRIPTION:
-Skapa en fullständig transkription av allt som sägs i inspelningen på svenska.
+Skapa en ordagrann transkription av allt som sägs i inspelningen på svenska.
 
 UPPGIFT 2 - SAMMANFATTNING:
-Baserat på transkriptionen, skapa en strukturerad sammanfattning för elever som vill repetera materialet.
+Skapa en strukturerad sammanfattning som ENDAST innehåller information som faktiskt nämndes i inspelningen.
 
-Sammanfattningen ska vara:
-- Strukturerad med tydliga rubriker (## för huvudrubriker, ### för underrubriker)
-- Innehålla de viktigaste punkterna från lektionen
-- Använda punktlistor för att göra informationen lättläst
-- Koncis men informativ (300-500 ord)
-- På svenska
+VIKTIGA REGLER:
+- Sammanfatta BARA det som sades - lägg inte till egen kunskap
+- Gör INGA antaganden om vad läraren "menade"
+- Lägg INTE till förklaringar eller kontext som inte nämndes
+- Om något är oklart i inspelningen, skriv att det var oklart istället för att gissa
+- Var en trogen spegel av lektionens innehåll
+- Hitta INTE på exempel eller fakta som inte sades
 
-Inkludera i sammanfattningen:
-1. En kort översikt av vad lektionen handlade om
-2. De viktigaste begreppen/fakta som togs upp
-3. Eventuella exempel som nämndes
-4. Sammanfattande punkter att komma ihåg
+Sammanfattningens format:
+- Använd tydliga rubriker (## för huvudrubriker)
+- Använd punktlistor för att göra det lättläst
+- Håll sammanfattningen koncis (200-400 ord)
+- Skriv på svenska
 
 Lektionsinformation:
 - Titel: ${lesson.title}
@@ -195,10 +196,10 @@ Lektionsinformation:
 
 SVARA I FÖLJANDE FORMAT:
 ---TRANSKRIPTION---
-[Full transkription här]
+[Ordagrann transkription här]
 
 ---SAMMANFATTNING---
-[Strukturerad sammanfattning här]`,
+[Sammanfattning av ENDAST det som sades]`,
                 },
               ],
             }],
