@@ -24,8 +24,7 @@ import {
   Users,
   Video,
   Sparkles,
-  School,
-  TrendingUp
+  School
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -225,12 +224,11 @@ const TeacherDashboard = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { label: "Aktiva Klasser", value: classes.length, icon: BookOpen, color: "text-primary" },
           { label: "Totala Elever", value: totalStudents, icon: Users, color: "text-secondary" },
           { label: "AI Lektioner", value: totalLessons, icon: Video, color: "text-accent" },
-          { label: "Engagemang", value: "+24%", icon: TrendingUp, color: "text-green-400" },
         ].map((stat, i) => (
           <div key={i} className="glass-card p-8 rounded-3xl flex items-center gap-6">
             <div className={`w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center ${stat.color} border border-white/5`}>

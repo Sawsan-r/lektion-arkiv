@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap, BookOpen, Loader2, XCircle, Users, Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
+import { GraduationCap, BookOpen, Loader2, Users, Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
 import { z } from "zod";
 
 const passwordSchema = z.string().min(6, "Lösenord måste vara minst 6 tecken");
@@ -14,11 +14,11 @@ const emailSchema = z.string().email("Ogiltig e-postadress");
 
 const JoinClass = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const code = searchParams.get("code");
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!!code);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [classData, setClassData] = useState<{
     id: string;
@@ -30,17 +30,17 @@ const JoinClass = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string; code?: string }>({});
+  const [manualCode, setManualCode] = useState("");
+  const [isLookingUp, setIsLookingUp] = useState(false);
 
   useEffect(() => {
     if (code) {
-      fetchClassData();
-    } else {
-      setIsLoading(false);
+      fetchClassData(code);
     }
   }, [code]);
 
-  const fetchClassData = async () => {
+  const fetchClassData = async (classCode: string) => {
     try {
       const { data, error } = await supabase
         .from("classes")
@@ -50,12 +50,12 @@ const JoinClass = () => {
           profiles!classes_teacher_id_profiles_fkey(full_name),
           organizations(name)
         `)
-        .eq("join_code", code?.toUpperCase())
+        .eq("join_code", classCode.toUpperCase())
         .maybeSingle();
 
       if (error || !data) {
         setClassData(null);
-        return;
+        return false;
       }
 
       setClassData({
@@ -64,11 +64,29 @@ const JoinClass = () => {
         teacher_name: (data.profiles as any)?.full_name || "Lärare",
         organization_name: (data.organizations as any)?.name || "Skola",
       });
+      return true;
     } catch (err) {
       console.error("Error fetching class:", err);
       setClassData(null);
+      return false;
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleManualCodeSubmit = async () => {
+    if (!manualCode.trim() || manualCode.length < 6) {
+      setErrors({ code: "Ange en giltig 6-siffrig klasskod" });
+      return;
+    }
+    setErrors({});
+    setIsLookingUp(true);
+    const found = await fetchClassData(manualCode.trim());
+    setIsLookingUp(false);
+    if (!found) {
+      setErrors({ code: "Klasskoden kunde inte hittas. Kontrollera att du har rätt kod." });
+    } else {
+      setSearchParams({ code: manualCode.toUpperCase() });
     }
   };
 
@@ -173,24 +191,60 @@ const JoinClass = () => {
     );
   }
 
-  if (!code || !classData) {
+  if (!classData) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-destructive/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none" />
+        
+        {/* Header */}
+        <header className="absolute top-0 left-0 p-8 flex items-center gap-3 z-10">
+          <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center glow-primary">
+            <GraduationCap className="w-7 h-7 text-white" />
+          </div>
+          <span className="font-black text-2xl tracking-tighter text-white uppercase">Notera</span>
+        </header>
+
         <Card className="w-full max-w-md glass-panel border-white/10 relative z-10">
           <CardContent className="p-12 text-center space-y-8">
-            <div className="w-20 h-20 rounded-[2rem] bg-destructive/10 flex items-center justify-center mx-auto border border-destructive/20">
-              <XCircle className="w-10 h-10 text-destructive" />
+            <div className="w-20 h-20 rounded-[2rem] bg-primary/10 flex items-center justify-center mx-auto border border-primary/20">
+              <Users className="w-10 h-10 text-primary" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-3xl font-black tracking-tighter text-white">Ogiltig klasskod</h1>
+              <h1 className="text-3xl font-black tracking-tighter text-white">Gå med i en klass</h1>
               <p className="text-muted-foreground text-lg">
-                Klasskoden kunde inte hittas. Kontrollera att du har rätt kod från din lärare.
+                Ange den 6-siffriga klasskoden du fått av din lärare.
               </p>
             </div>
-            <Button onClick={() => navigate("/")} className="w-full h-14 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold transition-all border border-white/10">
-              Tillbaka till startsidan
-            </Button>
+            <div className="space-y-4">
+              <Input
+                placeholder="KLASSKOD"
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value.toUpperCase())}
+                className={`text-center font-black text-3xl tracking-[0.3em] h-16 glass-input rounded-xl border-white/10 uppercase ${errors.code ? "border-destructive/50" : ""}`}
+                maxLength={6}
+              />
+              {errors.code && (
+                <p className="text-sm text-destructive font-bold">{errors.code}</p>
+              )}
+              <Button
+                onClick={handleManualCodeSubmit}
+                disabled={isLookingUp || manualCode.length < 6}
+                className="w-full h-14 rounded-xl bg-primary text-white font-black text-xl hover:bg-primary/90 transition-all glow-primary"
+              >
+                {isLookingUp ? <Loader2 className="w-6 h-6 animate-spin" /> : "Hitta klass"}
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Har du redan ett konto?{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/auth")}
+                className="text-primary font-black hover:underline"
+              >
+                Logga in här
+              </button>
+            </p>
           </CardContent>
         </Card>
       </div>

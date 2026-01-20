@@ -19,7 +19,6 @@ import {
   Loader2,
   Sparkles,
   GraduationCap,
-  Trophy,
   Clock,
   School,
   Video
@@ -243,11 +242,10 @@ const StudentDashboard = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[
           { label: "Mina Klasser", value: classes.length, icon: GraduationCap, color: "text-primary" },
           { label: "Totala Lektioner", value: classes.reduce((acc, curr) => acc + curr.lesson_count, 0), icon: BookOpen, color: "text-secondary" },
-          { label: "Prestationer", value: "3", icon: Trophy, color: "text-accent" },
         ].map((stat, i) => (
           <div key={i} className="glass-card p-8 rounded-3xl flex items-center gap-6">
             <div className={`w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center ${stat.color} border border-white/5`}>
