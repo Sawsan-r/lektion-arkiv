@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { GraduationCap, ArrowLeft, Loader2, Sparkles, ShieldCheck, Mail, Lock, User } from "lucide-react";
+import { GraduationCap, ArrowLeft, Loader2, Sparkles, ShieldCheck, Mail, Lock, Users } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,18 +17,16 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { user, isLoading: authLoading, signIn, signUp, roles } = useAuth();
+  const { user, isLoading: authLoading, signIn, roles } = useAuth();
 
-  const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
+  const [mode, setMode] = useState<"login" | "reset">("login");
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [resetSent, setResetSent] = useState(false);
   const [isProcessingJoin, setIsProcessingJoin] = useState(false);
 
-  const inviteToken = searchParams.get("invite");
   const joinCode = searchParams.get("joinCode");
 
   useEffect(() => {
@@ -97,7 +95,6 @@ const Auth = () => {
     if (mode !== "reset") {
       try { passwordSchema.parse(password); } catch (e) { if (e instanceof z.ZodError) newErrors.password = e.errors[0].message; }
     }
-    if (mode === "signup" && !fullName.trim()) newErrors.fullName = "Namn krävs";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -129,28 +126,15 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      if (mode === "login") {
-        const { error } = await signIn(email, password);
-        if (error) {
-          toast({
-            title: "Inloggning misslyckades",
-            description: error.message.includes("Invalid login") ? "Felaktig e-post eller lösenord" : error.message,
-            variant: "destructive"
-          });
-        } else {
-          toast({ title: "Välkommen tillbaka!" });
-        }
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast({
+          title: "Inloggning misslyckades",
+          description: error.message.includes("Invalid login") ? "Felaktig e-post eller lösenord" : error.message,
+          variant: "destructive"
+        });
       } else {
-        const { error } = await signUp(email, password, fullName);
-        if (error) {
-          toast({
-            title: "Konto kunde inte skapas",
-            description: error.message.includes("already registered") ? "E-postadressen är redan registrerad" : error.message,
-            variant: "destructive"
-          });
-        } else {
-          toast({ title: "Konto skapat!", description: "Kontrollera din e-post för att verifiera kontot." });
-        }
+        toast({ title: "Välkommen tillbaka!" });
       }
     } catch (err) {
       toast({ title: "Ett fel uppstod", description: "Vänligen försök igen senare", variant: "destructive" });
@@ -198,41 +182,20 @@ const Auth = () => {
               <Sparkles className="w-8 h-8 text-secondary animate-pulse" />
             </div>
             <CardTitle className="text-4xl font-black tracking-tight text-white">
-              {mode === "reset" ? "Återställ lösenord" : mode === "login" ? "Välkommen tillbaka" : "Skapa ditt konto"}
+              {mode === "reset" ? "Återställ lösenord" : "Välkommen tillbaka"}
             </CardTitle>
             <CardDescription className="text-lg text-muted-foreground">
               {mode === "reset"
                 ? resetSent
                   ? "Kolla din e-post för återställningslänken"
                   : "Ange din e-postadress för att återställa ditt lösenord"
-                : mode === "login"
-                  ? "Logga in för att fortsätta din AI-resa"
-                  : inviteToken
-                    ? "Du har blivit inbjuden som lärare till Notera"
-                    : "Börja använda framtidens klassrumshantering"
+                : "Logga in för att fortsätta din AI-resa"
               }
             </CardDescription>
           </CardHeader>
 
           <CardContent className="px-10 pb-12">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {mode === "signup" && (
-                <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Fullständigt namn</Label>
-                  <div className="relative group">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                    <Input
-                      id="fullName"
-                      placeholder="Anna Andersson"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className={`h-14 pl-12 glass-input rounded-xl text-lg ${errors.fullName ? "border-destructive" : ""}`}
-                    />
-                  </div>
-                  {errors.fullName && <p className="text-sm text-destructive font-medium ml-1">{errors.fullName}</p>}
-                </div>
-              )}
-
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">E-postadress</Label>
                 <div className="relative group">
@@ -288,10 +251,8 @@ const Auth = () => {
                   <Loader2 className="w-6 h-6 animate-spin" />
                 ) : mode === "reset" ? (
                   resetSent ? "E-post skickad!" : "Skicka återställningslänk"
-                ) : mode === "login" ? (
-                  "Logga in"
                 ) : (
-                  "Skapa konto"
+                  "Logga in"
                 )}
               </Button>
             </form>
@@ -301,23 +262,25 @@ const Auth = () => {
               <span className="relative bg-transparent px-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Eller</span>
             </div>
 
-            <div className="mt-8 text-center space-y-3">
+            <div className="mt-8 space-y-4">
               {mode === "reset" ? (
                 <button
                   type="button"
                   onClick={() => { setMode("login"); setErrors({}); setResetSent(false); }}
-                  className="text-lg font-bold text-muted-foreground hover:text-secondary transition-colors"
+                  className="w-full text-lg font-bold text-muted-foreground hover:text-secondary transition-colors text-center"
                 >
                   Tillbaka till inloggning
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => { setMode(mode === "login" ? "signup" : "login"); setErrors({}); }}
-                  className="text-lg font-bold text-muted-foreground hover:text-secondary transition-colors"
-                >
-                  {mode === "login" ? "Har du inget konto? Skapa ett här" : "Har du redan ett konto? Logga in här"}
-                </button>
+                <Link to="/join" className="block">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-14 rounded-xl glass-button border-white/10 font-bold text-lg hover:bg-white/10 gap-3"
+                  >
+                    <Users className="w-5 h-5" />
+                    Elev? Gå med i en klass
+                  </Button>
+                </Link>
               )}
             </div>
           </CardContent>

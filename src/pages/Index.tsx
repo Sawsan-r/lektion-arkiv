@@ -117,7 +117,7 @@ const Index = () => {
             <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
               Gå med i tusentals framsynta pedagoger som använder Notera för att skapa framtidens skola idag.
             </p>
-            <Link to="/auth">
+            <Link to="/join">
               <Button size="lg" className="h-16 px-12 rounded-full bg-white text-black font-black text-xl hover:bg-gray-100 transition-all hover:scale-105 shadow-2xl">
                 Kom igång nu
               </Button>
