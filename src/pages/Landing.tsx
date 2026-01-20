@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Shield, Mic, Play, ChevronRight, Sparkles, GraduationCap, ArrowRight, BookOpen, BrainCircuit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -23,7 +22,6 @@ const Landing = () => {
           <span className="font-black text-2xl tracking-tighter text-white uppercase">Notera</span>
         </div>
         <div className="flex items-center gap-4">
-          <ThemeToggle />
           <Button
             variant="ghost"
             onClick={() => navigate("/auth")}

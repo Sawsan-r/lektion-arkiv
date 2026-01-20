@@ -41,7 +41,6 @@ import {
     ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -190,7 +189,6 @@ const DashboardLayout = () => {
                             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">AI Status: Online</span>
                         </div>
-                        <ThemeToggle />
                     </div>
                 </header>
                 <main className="flex-1 p-8 md:p-12 max-w-[1600px] mx-auto w-full">
