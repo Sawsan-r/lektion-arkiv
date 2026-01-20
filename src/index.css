@@ -60,48 +60,6 @@
     --sidebar-ring: 260 100% 65%;
   }
 
-  /* Light mode override - Keep it clean and readable */
-  .light {
-    --background: 240 20% 98%;
-    --foreground: 240 30% 6%;
-
-    /* Vibrant Light Mode Gradient */
-    --bg-gradient: linear-gradient(to bottom right, hsl(260 100% 97%), hsl(190 100% 94%));
-
-    --card: 0 0% 100%;
-    --card-foreground: 240 30% 6%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 30% 6%;
-
-    --primary: 260 90% 55%;
-    --primary-foreground: 210 20% 98%;
-
-    --secondary: 190 90% 40%;
-    --secondary-foreground: 210 20% 98%;
-
-    --muted: 240 10% 92%;
-    --muted-foreground: 240 10% 40%;
-
-    --accent: 320 90% 50%;
-    --accent-foreground: 210 20% 98%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 20% 98%;
-
-    --border: 240 10% 88%;
-    --input: 240 10% 88%;
-    --ring: 260 90% 55%;
-
-    --sidebar-background: 240 20% 98%;
-    --sidebar-foreground: 240 30% 6%;
-    --sidebar-primary: 260 90% 55%;
-    --sidebar-primary-foreground: 210 20% 98%;
-    --sidebar-accent: 260 20% 92%;
-    --sidebar-accent-foreground: 260 90% 55%;
-    --sidebar-border: 240 10% 85%;
-    --sidebar-ring: 260 90% 55%;
-  }
 }
 
 @layer base {

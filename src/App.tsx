@@ -31,7 +31,7 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+  <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
