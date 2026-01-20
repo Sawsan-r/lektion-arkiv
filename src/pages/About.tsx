@@ -1,6 +1,7 @@
 import Footer from "@/components/Footer";
+import Header from "@/components/Header";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Target, Rocket, ShieldCheck, Sparkles } from "lucide-react";
+import { Target, Rocket, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const About = () => {
@@ -10,12 +11,9 @@ const About = () => {
             <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow" />
             <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow delay-1000" />
 
-            <div className="container mx-auto px-4 py-12 flex-grow relative z-10">
-                <Link to="/" className="inline-flex items-center text-muted-foreground hover:text-primary transition-all mb-12 group">
-                    <ArrowLeft className="mr-2 h-5 w-5 group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-lg font-medium">Tillbaka till hem</span>
-                </Link>
+            <Header />
 
+            <div className="container mx-auto px-4 pt-32 pb-12 flex-grow relative z-10">
                 <div className="max-w-5xl mx-auto space-y-20">
                     <div className="text-center space-y-6">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-4">

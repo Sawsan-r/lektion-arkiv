@@ -2,9 +2,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Footer from "@/components/Footer";
+import Header from "@/components/Header";
 import {
-  GraduationCap,
-  ArrowLeft,
   Sparkles,
   Check,
   Zap,
@@ -73,28 +72,10 @@ const Pricing = () => {
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow" />
 
-      {/* Header */}
-      <header className="p-6 flex items-center justify-between relative z-10">
-        <Button
-          variant="ghost"
-          className="gap-2 text-muted-foreground hover:text-white transition-colors"
-          asChild
-        >
-          <Link to="/">
-            <ArrowLeft className="w-5 h-5" /> Tillbaka
-          </Link>
-        </Button>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center glow-primary">
-            <GraduationCap className="w-6 h-6 text-white" />
-          </div>
-          <span className="font-black text-2xl tracking-tighter text-white">Notera</span>
-        </div>
-        <div className="w-20" />
-      </header>
+      <Header />
 
       {/* Hero Section */}
-      <section className="py-20 px-6 relative z-10">
+      <section className="pt-32 pb-20 px-6 relative z-10">
         <div className="max-w-4xl mx-auto text-center space-y-8">
           <div className="flex items-center justify-center gap-2 text-primary">
             <Sparkles className="w-5 h-5" />
