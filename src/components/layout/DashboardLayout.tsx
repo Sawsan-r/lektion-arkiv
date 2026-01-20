@@ -18,6 +18,16 @@ import {
     SidebarInset,
 } from "@/components/ui/sidebar";
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
     LayoutDashboard,
     Users,
     BookOpen,
@@ -39,6 +49,7 @@ const DashboardLayout = () => {
     const { user, signOut, roles } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
+    const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
     const handleSignOut = async () => {
         await signOut();
@@ -154,7 +165,7 @@ const DashboardLayout = () => {
                                     align="end"
                                     sideOffset={12}
                                 >
-                                    <DropdownMenuItem onClick={handleSignOut} className="h-12 rounded-xl focus:bg-destructive/10 focus:text-destructive cursor-pointer">
+                                    <DropdownMenuItem onClick={() => setShowLogoutDialog(true)} className="h-12 rounded-xl focus:bg-destructive/10 focus:text-destructive cursor-pointer">
                                         <LogOut className="mr-3 h-5 w-5" />
                                         <span className="font-bold">Logga ut</span>
                                     </DropdownMenuItem>
@@ -186,6 +197,34 @@ const DashboardLayout = () => {
                     <Outlet />
                 </main>
             </SidebarInset>
+
+            {/* Logout Confirmation Dialog */}
+            <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+                <AlertDialogContent className="glass-panel border-white/10 max-w-md">
+                    <AlertDialogHeader>
+                        <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto mb-4 border border-destructive/20">
+                            <LogOut className="w-8 h-8 text-destructive" />
+                        </div>
+                        <AlertDialogTitle className="text-2xl font-black tracking-tight text-center">
+                            Logga ut?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-center text-base">
+                            Är du säker på att du vill logga ut från Notera?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-3 pt-4">
+                        <AlertDialogCancel className="flex-1 h-12 rounded-xl glass-button border-white/10 font-bold">
+                            Avbryt
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleSignOut}
+                            className="flex-1 h-12 rounded-xl bg-destructive hover:bg-destructive/90 font-bold"
+                        >
+                            Ja, logga ut
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </SidebarProvider>
     );
 };
