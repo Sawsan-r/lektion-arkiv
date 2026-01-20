@@ -11,16 +11,21 @@ import Auth from "./pages/Auth";
 import TeacherInvite from "./pages/TeacherInvite";
 import JoinClass from "./pages/JoinClass";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminSettings from "./pages/admin/AdminSettings";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import ClassLessons from "./pages/teacher/ClassLessons";
 import RecordLesson from "./pages/teacher/RecordLesson";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import ClassView from "./pages/student/ClassView";
 import LessonView from "./pages/student/LessonView";
+import AllLessons from "./pages/student/AllLessons";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Features from "./pages/Features";
+import Pricing from "./pages/Pricing";
 import DashboardLayout from "./components/layout/DashboardLayout";
 
 const queryClient = new QueryClient();
@@ -44,6 +49,8 @@ const App = () => (
               <Route path="/about" element={<About />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/pricing" element={<Pricing />} />
 
               {/* Protected Dashboard Routes */}
               <Route element={<DashboardLayout />}>
@@ -51,6 +58,16 @@ const App = () => (
                 <Route path="/admin" element={
                   <ProtectedRoute requiredRole="system_admin">
                     <AdminDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <ProtectedRoute requiredRole="system_admin">
+                    <AdminUsers />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/settings" element={
+                  <ProtectedRoute requiredRole="system_admin">
+                    <AdminSettings />
                   </ProtectedRoute>
                 } />
 
@@ -85,6 +102,11 @@ const App = () => (
                 <Route path="/student/lesson/:lessonId" element={
                   <ProtectedRoute allowedRoles={['student']}>
                     <LessonView />
+                  </ProtectedRoute>
+                } />
+                <Route path="/student/lessons" element={
+                  <ProtectedRoute allowedRoles={['student']}>
+                    <AllLessons />
                   </ProtectedRoute>
                 } />
               </Route>
