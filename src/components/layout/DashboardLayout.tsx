@@ -63,8 +63,6 @@ const DashboardLayout = () => {
             return [
                 ...commonItems,
                 { title: "Översikt", url: "/teacher", icon: LayoutDashboard },
-                { title: "Mina klasser", url: "/teacher/classes", icon: School },
-                { title: "Spela in lektion", url: "/teacher/record", icon: Video },
             ];
         }
 
@@ -72,7 +70,6 @@ const DashboardLayout = () => {
             return [
                 ...commonItems,
                 { title: "Översikt", url: "/student", icon: LayoutDashboard },
-                { title: "Mina klasser", url: "/student/classes", icon: GraduationCap },
                 { title: "Alla lektioner", url: "/student/lessons", icon: BookOpen },
             ];
         }
