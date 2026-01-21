@@ -12,7 +12,7 @@ import {
   Zap,
   CheckCircle2,
   Brain,
-  BookOpen,
+  ArrowRight,
 } from "lucide-react";
 
 const features = [
@@ -163,9 +163,10 @@ const Features = () => {
               className="h-14 px-8 rounded-xl bg-primary text-white font-black text-lg hover:bg-primary/90 glow-primary"
               asChild
             >
-              <Link to="/auth">
-                <BookOpen className="w-5 h-5 mr-2" />
-                Skapa konto
+              <Link to="/join">
+                <Users className="w-5 h-5 mr-2" />
+                Gå med som elev
+                <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
             <Button
