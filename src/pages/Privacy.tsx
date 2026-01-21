@@ -1,18 +1,15 @@
 import Footer from "@/components/Footer";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Lock } from "lucide-react";
+import Header from "@/components/Header";
+import { Lock } from "lucide-react";
 
 const Privacy = () => {
     return (
         <div className="min-h-screen flex flex-col bg-background text-foreground overflow-hidden relative">
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow" />
 
-            <div className="container mx-auto px-4 py-12 flex-grow relative z-10">
-                <Link to="/" className="inline-flex items-center text-muted-foreground hover:text-primary transition-all mb-12 group">
-                    <ArrowLeft className="mr-2 h-5 w-5 group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-lg font-medium">Tillbaka till hem</span>
-                </Link>
+            <Header />
 
+            <div className="container mx-auto px-4 pt-32 pb-12 flex-grow relative z-10">
                 <div className="max-w-4xl mx-auto glass-panel p-12 md:p-16 rounded-[2.5rem] border-white/10 shadow-2xl">
                     <div className="flex items-center gap-4 mb-10">
                         <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center border border-secondary/20">

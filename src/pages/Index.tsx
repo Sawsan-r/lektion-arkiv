@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Play, Shield, Zap, Sparkles, Cpu, Globe } from "lucide-react";
+import { ArrowRight, Play, Shield, Zap, Sparkles, Cpu, Globe, Mail } from "lucide-react";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -35,16 +35,16 @@ const Index = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <Link to="/invite">
-              <Button size="lg" className="h-16 px-10 rounded-full bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all glow-primary hover:-translate-y-1 flex items-center gap-3">
-                Börja undervisa <ArrowRight className="w-6 h-6" />
-              </Button>
-            </Link>
             <Link to="/join">
-              <Button variant="outline" size="lg" className="h-16 px-10 rounded-full glass-button border-white/10 text-white font-bold text-lg hover:bg-white/10 flex items-center gap-3">
-                Gå med i klass <Play className="w-6 h-6 fill-current" />
+              <Button size="lg" className="h-16 px-10 rounded-full bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all glow-primary hover:-translate-y-1 flex items-center gap-3">
+                Gå med som elev <ArrowRight className="w-6 h-6" />
               </Button>
             </Link>
+            <a href="mailto:kontakt@notera.se?subject=Lärarintresse%20för%20Notera">
+              <Button variant="outline" size="lg" className="h-16 px-10 rounded-full glass-button border-white/10 text-white font-bold text-lg hover:bg-white/10 flex items-center gap-3">
+                <Mail className="w-5 h-5" /> Lärare? Kontakta oss
+              </Button>
+            </a>
           </div>
 
           {/* Stats Grid */}

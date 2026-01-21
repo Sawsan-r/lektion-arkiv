@@ -25,8 +25,8 @@ const plans = [
       "5 lärarklasser",
       "E-postsupport",
     ],
-    cta: "Kom igång gratis",
-    ctaLink: "/auth",
+    cta: "Kontakta oss",
+    ctaLink: "mailto:kontakt@notera.se?subject=Grundskola%20pilotprogrammet",
     highlighted: false,
   },
   {

@@ -62,15 +62,15 @@ const About = () => {
                         </p>
                         <div className="flex flex-col sm:flex-row justify-center gap-6 pt-4">
                             <Link to="/join">
-                                <Button variant="outline" size="lg" className="h-16 px-10 rounded-full glass-button border-white/10 text-white font-bold text-lg w-full sm:w-auto">
+                                <Button size="lg" className="h-16 px-10 rounded-full bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all glow-primary w-full sm:w-auto">
                                     Gå med som elev
                                 </Button>
                             </Link>
-                            <Link to="/invite">
-                                <Button size="lg" className="h-16 px-10 rounded-full bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all glow-primary w-full sm:w-auto">
-                                    Läraråtkomst
+                            <a href="mailto:kontakt@notera.se?subject=Intresse%20för%20Notera">
+                                <Button variant="outline" size="lg" className="h-16 px-10 rounded-full glass-button border-white/10 text-white font-bold text-lg w-full sm:w-auto">
+                                    Kontakta oss
                                 </Button>
-                            </Link>
+                            </a>
                         </div>
                     </div>
                 </div>
