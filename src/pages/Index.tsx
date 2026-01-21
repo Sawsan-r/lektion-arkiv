@@ -40,11 +40,11 @@ const Index = () => {
                 Gå med som elev <ArrowRight className="w-6 h-6" />
               </Button>
             </Link>
-            <a href="mailto:kontakt@notera.se?subject=Lärarintresse%20för%20Notera">
+            <Link to="/contact">
               <Button variant="outline" size="lg" className="h-16 px-10 rounded-full glass-button border-white/10 text-white font-bold text-lg hover:bg-white/10 flex items-center gap-3">
                 <Mail className="w-5 h-5" /> Lärare? Kontakta oss
               </Button>
-            </a>
+            </Link>
           </div>
 
           {/* Stats Grid */}

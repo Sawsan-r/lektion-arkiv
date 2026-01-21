@@ -26,6 +26,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Features from "./pages/Features";
 import Pricing from "./pages/Pricing";
+import Contact from "./pages/Contact";
 import DashboardLayout from "./components/layout/DashboardLayout";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/features" element={<Features />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/contact" element={<Contact />} />
 
               {/* Protected Dashboard Routes */}
               <Route element={<DashboardLayout />}>

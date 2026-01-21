@@ -26,7 +26,7 @@ const plans = [
       "E-postsupport",
     ],
     cta: "Kontakta oss",
-    ctaLink: "mailto:kontakt@notera.se?subject=Grundskola%20pilotprogrammet",
+    ctaLink: "/contact?subject=pilot",
     highlighted: false,
   },
   {
@@ -43,7 +43,7 @@ const plans = [
       "Avancerad statistik",
     ],
     cta: "Kontakta oss",
-    ctaLink: "mailto:kontakt@notera.se",
+    ctaLink: "/contact?subject=pro",
     highlighted: true,
   },
   {
@@ -60,7 +60,7 @@ const plans = [
       "Anpassade integrationer",
     ],
     cta: "Boka demo",
-    ctaLink: "mailto:kontakt@notera.se?subject=Demo%20förfrågan",
+    ctaLink: "/contact?subject=demo",
     highlighted: false,
   },
 ];
@@ -145,14 +145,10 @@ const Pricing = () => {
                   }`}
                   asChild
                 >
-                  {plan.ctaLink.startsWith("mailto:") ? (
-                    <a href={plan.ctaLink}>
-                      <Mail className="w-5 h-5 mr-2" />
-                      {plan.cta}
-                    </a>
-                  ) : (
-                    <Link to={plan.ctaLink}>{plan.cta}</Link>
-                  )}
+                  <Link to={plan.ctaLink}>
+                    <Mail className="w-5 h-5 mr-2" />
+                    {plan.cta}
+                  </Link>
                 </Button>
               </CardContent>
             </Card>

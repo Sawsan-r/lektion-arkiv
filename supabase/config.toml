@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.send-teacher-invite]
 verify_jwt = false
+
+[functions.send-contact-form]
+verify_jwt = false
