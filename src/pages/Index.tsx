@@ -22,7 +22,9 @@ const Index = () => {
         <div className="container mx-auto px-4 relative z-10 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-8 animate-fade-in">
             <Sparkles className="w-4 h-4 text-secondary animate-pulse" />
-            <span className="text-sm font-medium text-muted-foreground tracking-wide">AI-DRIVET LÄRANDE FÖR SVENSKA SKOLOR</span>
+            <span className="text-sm font-medium text-muted-foreground tracking-wide">
+              AI-DRIVET LÄRANDE FÖR SVENSKA SKOLOR
+            </span>
           </div>
 
           <h1 className="text-6xl md:text-8xl font-extrabold tracking-tighter mb-8 text-balance leading-[0.9]">
@@ -31,17 +33,25 @@ const Index = () => {
           </h1>
 
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12 text-balance leading-relaxed">
-            Revolutionera din undervisning med AI-drivna insikter. Notera transkriberar, sammanfattar och analyserar dina lektioner i realtid – så att du kan fokusera på eleverna.
+            Revolutionera din undervisning med AI-drivna insikter. Notera transkriberar, sammanfattar och analyserar
+            dina lektioner i realtid – så att du kan fokusera på eleverna.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <Link to="/join">
-              <Button size="lg" className="h-16 px-10 rounded-full bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all glow-primary hover:-translate-y-1 flex items-center gap-3">
+              <Button
+                size="lg"
+                className="h-16 px-10 rounded-full bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all glow-primary hover:-translate-y-1 flex items-center gap-3"
+              >
                 Gå med som elev <ArrowRight className="w-6 h-6" />
               </Button>
             </Link>
             <Link to="/contact">
-              <Button variant="outline" size="lg" className="h-16 px-10 rounded-full glass-button border-white/10 text-white font-bold text-lg hover:bg-white/10 flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="lg"
+                className="h-16 px-10 rounded-full glass-button border-white/10 text-white font-bold text-lg hover:bg-white/10 flex items-center gap-3"
+              >
                 <Mail className="w-5 h-5" /> Lärare? Kontakta oss
               </Button>
             </Link>
@@ -69,7 +79,9 @@ const Index = () => {
       <section className="py-32 relative bg-black/20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight">Drivs av <span className="text-secondary">Nästa Generations AI</span></h2>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight">
+              Drivs av <span className="text-secondary">Nästa Generations AI</span>
+            </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Upplev funktioner designade för det moderna utbildningslandskapet i Sverige.
             </p>
@@ -80,18 +92,20 @@ const Index = () => {
               {
                 icon: <Zap className="w-10 h-10 text-secondary" />,
                 title: "Omedelbar transkribering",
-                description: "Avancerad tal-till-text i realtid med fullt stöd för svenska och automatisk talardetektering."
+                description:
+                  "Avancerad tal-till-text i realtid med fullt stöd för svenska och automatisk talardetektering.",
               },
               {
                 icon: <Shield className="w-10 h-10 text-primary" />,
                 title: "Säker lagring",
-                description: "Kryptering i företagsklass och full GDPR-efterlevnad säkerställer att all skolans data förblir privat."
+                description:
+                  "Kryptering i företagsklass och full GDPR-efterlevnad säkerställer att all skolans data förblir privat.",
               },
               {
                 icon: <Sparkles className="w-10 h-10 text-accent" />,
                 title: "Smarta sammanfattningar",
-                description: "AI-genererade nyckelpunkter, begreppsförklaringar och åtgärdspunkter från varje lektion."
-              }
+                description: "AI-genererade nyckelpunkter, begreppsförklaringar och åtgärdspunkter från varje lektion.",
+              },
             ].map((feature, index) => (
               <div key={index} className="glass-card p-10 rounded-3xl group">
                 <div className="mb-8 p-5 rounded-2xl bg-white/5 w-fit group-hover:scale-110 transition-transform duration-500">
@@ -113,12 +127,18 @@ const Index = () => {
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-secondary/20 rounded-full blur-[100px]" />
 
-            <h2 className="text-5xl md:text-7xl font-black mb-8 text-white tracking-tighter leading-none">Redo att uppgradera <br />ditt klassrum?</h2>
+            <h2 className="text-5xl md:text-7xl font-black mb-8 text-white tracking-tighter leading-none">
+              Redo att uppgradera <br />
+              ditt klassrum?
+            </h2>
             <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
               Gå med i tusentals framsynta pedagoger som använder Notera för att skapa framtidens skola idag.
             </p>
-            <Link to="/join">
-              <Button size="lg" className="h-16 px-12 rounded-full bg-white text-black font-black text-xl hover:bg-gray-100 transition-all hover:scale-105 shadow-2xl">
+            <Link to="/contact">
+              <Button
+                size="lg"
+                className="h-16 px-12 rounded-full bg-white text-black font-black text-xl hover:bg-gray-100 transition-all hover:scale-105 shadow-2xl"
+              >
                 Kom igång nu
               </Button>
             </Link>
