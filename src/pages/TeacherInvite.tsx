@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap, Building2, Loader2, CheckCircle2, XCircle, Sparkles, ShieldCheck, ArrowRight, Lock as LockIcon } from "lucide-react";
+import { Building2, Loader2, XCircle, Sparkles, ArrowRight, Lock as LockIcon } from "lucide-react";
 import { z } from "zod";
+import noteraLogo from "@/assets/notera-logo-white.png";
 
 const passwordSchema = z.string().min(6, "Lösenord måste vara minst 6 tecken");
 
@@ -193,11 +194,10 @@ const TeacherInvite = () => {
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow" />
 
       {/* Header */}
-      <header className="p-8 flex items-center gap-3 relative z-10">
-        <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center glow-primary">
-          <GraduationCap className="w-7 h-7 text-white" />
-        </div>
-        <span className="font-black text-2xl tracking-tighter text-white uppercase">Notera</span>
+      <header className="p-8 relative z-10">
+        <Link to="/" className="inline-block hover:opacity-80 transition-opacity">
+          <img src={noteraLogo} alt="Notera" className="h-10 w-auto" />
+        </Link>
       </header>
 
       {/* Main content */}
