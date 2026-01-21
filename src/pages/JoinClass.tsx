@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -198,11 +198,13 @@ const JoinClass = () => {
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none" />
         
         {/* Header */}
-        <header className="absolute top-0 left-0 p-8 flex items-center gap-3 z-10">
-          <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center glow-primary">
-            <GraduationCap className="w-7 h-7 text-white" />
-          </div>
-          <span className="font-black text-2xl tracking-tighter text-white uppercase">Notera</span>
+        <header className="absolute top-0 left-0 p-8 z-10">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center glow-primary">
+              <GraduationCap className="w-7 h-7 text-white" />
+            </div>
+            <span className="font-black text-2xl tracking-tighter text-white uppercase">Notera</span>
+          </Link>
         </header>
 
         <Card className="w-full max-w-md glass-panel border-white/10 relative z-10">
