@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, LogIn, Menu, X } from "lucide-react";
+import { LogIn, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import noteraLogo from "@/assets/notera-logo-white.png";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -20,11 +21,12 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center glow-primary group-hover:scale-110 transition-transform">
-              <GraduationCap className="w-6 h-6 text-white" />
-            </div>
-            <span className="font-black text-2xl tracking-tighter text-white">Notera</span>
+          <Link to="/" className="group">
+            <img 
+              src={noteraLogo} 
+              alt="Notera" 
+              className="h-9 w-auto group-hover:opacity-80 transition-opacity"
+            />
           </Link>
 
           {/* Desktop Navigation */}

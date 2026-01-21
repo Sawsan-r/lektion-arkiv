@@ -31,11 +31,8 @@ import {
     LayoutDashboard,
     Users,
     BookOpen,
-    Video,
     Settings,
     LogOut,
-    GraduationCap,
-    School,
     Home,
     Sparkles,
     ChevronRight,
@@ -43,6 +40,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import noteraLogo from "@/assets/notera-logo-white.png";
 
 const DashboardLayout = () => {
     const { user, signOut, roles } = useAuth();
@@ -100,15 +98,14 @@ const DashboardLayout = () => {
         <SidebarProvider>
             <Sidebar collapsible="icon" className="border-r border-white/5 bg-sidebar-background/80 backdrop-blur-xl">
                 <SidebarHeader className="border-b border-white/5 pb-4">
-                    <div className="flex items-center gap-3 px-3 py-6">
-                        <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center glow-primary shrink-0">
-                            <GraduationCap className="h-6 w-6 text-white" />
-                        </div>
-                        <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
-                            <span className="truncate font-black text-xl tracking-tighter text-white">Notera</span>
-                            <span className="truncate text-[10px] font-bold tracking-[0.2em] text-primary uppercase">{getRoleLabel(roles)}</span>
-                        </div>
-                    </div>
+                    <Link to="/" className="flex items-center gap-3 px-3 py-6 group">
+                        <img 
+                            src={noteraLogo} 
+                            alt="Notera" 
+                            className="h-8 w-auto group-hover:opacity-80 transition-opacity group-data-[collapsible=icon]:h-6"
+                        />
+                        <span className="truncate text-[10px] font-bold tracking-[0.2em] text-primary uppercase group-data-[collapsible=icon]:hidden">{getRoleLabel(roles)}</span>
+                    </Link>
                 </SidebarHeader>
                 <SidebarContent className="px-2 pt-4">
                     <SidebarGroup>
