@@ -66,11 +66,11 @@ const About = () => {
                                     Gå med som elev
                                 </Button>
                             </Link>
-                            <a href="mailto:kontakt@notera.se?subject=Intresse%20för%20Notera">
+                            <Link to="/contact">
                                 <Button variant="outline" size="lg" className="h-16 px-10 rounded-full glass-button border-white/10 text-white font-bold text-lg w-full sm:w-auto">
                                     Kontakta oss
                                 </Button>
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </div>
