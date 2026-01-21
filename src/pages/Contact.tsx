@@ -11,55 +11,54 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Sparkles, Mail, MapPin, Clock, Loader2, CheckCircle2 } from "lucide-react";
-
 const contactSchema = z.object({
   name: z.string().min(2, "Namnet måste vara minst 2 tecken"),
   email: z.string().email("Ange en giltig e-postadress"),
   organization: z.string().optional(),
   role: z.string().optional(),
   subject: z.string().min(1, "Välj ett ämne"),
-  message: z.string().min(10, "Meddelandet måste vara minst 10 tecken"),
+  message: z.string().min(10, "Meddelandet måste vara minst 10 tecken")
 });
-
 type ContactFormData = z.infer<typeof contactSchema>;
-
-const subjectOptions = [
-  { value: "interest", label: "Intresse för Notera" },
-  { value: "pilot", label: "Pilotprogrammet (Grundskola)" },
-  { value: "pro", label: "Skola Pro-förfrågan" },
-  { value: "demo", label: "Demo-förfrågan" },
-  { value: "support", label: "Teknisk support" },
-  { value: "other", label: "Övrigt" },
-];
-
-const roleOptions = [
-  { value: "teacher", label: "Lärare" },
-  { value: "principal", label: "Rektor" },
-  { value: "it", label: "IT-ansvarig" },
-  { value: "other", label: "Annan" },
-];
-
+const subjectOptions = [{
+  value: "interest",
+  label: "Intresse för Notera"
+}, {
+  value: "pilot",
+  label: "Pilotprogrammet (Grundskola)"
+}, {
+  value: "pro",
+  label: "Skola Pro-förfrågan"
+}, {
+  value: "demo",
+  label: "Demo-förfrågan"
+}, {
+  value: "support",
+  label: "Teknisk support"
+}, {
+  value: "other",
+  label: "Övrigt"
+}];
+const roleOptions = [{
+  value: "teacher",
+  label: "Lärare"
+}, {
+  value: "principal",
+  label: "Rektor"
+}, {
+  value: "it",
+  label: "IT-ansvarig"
+}, {
+  value: "other",
+  label: "Annan"
+}];
 const Contact = () => {
   const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
@@ -68,30 +67,29 @@ const Contact = () => {
       organization: "",
       role: "",
       subject: "",
-      message: "",
-    },
+      message: ""
+    }
   });
 
   // Pre-fill subject based on query parameter
   useEffect(() => {
     const subjectParam = searchParams.get("subject");
     if (subjectParam) {
-      const validSubject = subjectOptions.find((opt) => opt.value === subjectParam);
+      const validSubject = subjectOptions.find(opt => opt.value === subjectParam);
       if (validSubject) {
         form.setValue("subject", subjectParam);
       }
     }
   }, [searchParams, form]);
-
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.functions.invoke("send-contact-form", {
-        body: data,
+      const {
+        error
+      } = await supabase.functions.invoke("send-contact-form", {
+        body: data
       });
-
       if (error) throw error;
-
       setIsSuccess(true);
       form.reset();
       toast.success("Tack för ditt meddelande! Vi återkommer så snart som möjligt.");
@@ -102,9 +100,7 @@ const Contact = () => {
       setIsSubmitting(false);
     }
   };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground overflow-hidden relative">
+  return <div className="min-h-screen flex flex-col bg-background text-foreground overflow-hidden relative">
       {/* Background Glow */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow" />
@@ -132,8 +128,7 @@ const Contact = () => {
             {/* Form */}
             <div className="lg:col-span-2">
               <div className="glass-card p-8 md:p-10 rounded-[2rem]">
-                {isSuccess ? (
-                  <div className="text-center py-12 space-y-6">
+                {isSuccess ? <div className="text-center py-12 space-y-6">
                     <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
                       <CheckCircle2 className="w-10 h-10 text-green-500" />
                     </div>
@@ -141,78 +136,45 @@ const Contact = () => {
                     <p className="text-muted-foreground max-w-md mx-auto">
                       Vi har mottagit ditt meddelande och återkommer så snart som möjligt, vanligtvis inom 24 timmar.
                     </p>
-                    <Button
-                      onClick={() => setIsSuccess(false)}
-                      variant="outline"
-                      className="mt-4"
-                    >
+                    <Button onClick={() => setIsSuccess(false)} variant="outline" className="mt-4">
                       Skicka ett nytt meddelande
                     </Button>
-                  </div>
-                ) : (
-                  <Form {...form}>
+                  </div> : <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                       <div className="grid md:grid-cols-2 gap-6">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
+                        <FormField control={form.control} name="name" render={({
+                      field
+                    }) => <FormItem>
                               <FormLabel>Namn *</FormLabel>
                               <FormControl>
-                                <Input
-                                  placeholder="Ditt namn"
-                                  className="h-12 bg-white/5 border-white/10"
-                                  {...field}
-                                />
+                                <Input placeholder="Ditt namn" className="h-12 bg-white/5 border-white/10" {...field} />
                               </FormControl>
                               <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
+                            </FormItem>} />
+                        <FormField control={form.control} name="email" render={({
+                      field
+                    }) => <FormItem>
                               <FormLabel>E-post *</FormLabel>
                               <FormControl>
-                                <Input
-                                  type="email"
-                                  placeholder="din.epost@skola.se"
-                                  className="h-12 bg-white/5 border-white/10"
-                                  {...field}
-                                />
+                                <Input type="email" placeholder="din.epost@skola.se" className="h-12 bg-white/5 border-white/10" {...field} />
                               </FormControl>
                               <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            </FormItem>} />
                       </div>
 
                       <div className="grid md:grid-cols-2 gap-6">
-                        <FormField
-                          control={form.control}
-                          name="organization"
-                          render={({ field }) => (
-                            <FormItem>
+                        <FormField control={form.control} name="organization" render={({
+                      field
+                    }) => <FormItem>
                               <FormLabel>Organisation / Skola</FormLabel>
                               <FormControl>
-                                <Input
-                                  placeholder="Skolans namn"
-                                  className="h-12 bg-white/5 border-white/10"
-                                  {...field}
-                                />
+                                <Input placeholder="Skolans namn" className="h-12 bg-white/5 border-white/10" {...field} />
                               </FormControl>
                               <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="role"
-                          render={({ field }) => (
-                            <FormItem>
+                            </FormItem>} />
+                        <FormField control={form.control} name="role" render={({
+                      field
+                    }) => <FormItem>
                               <FormLabel>Roll</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
@@ -221,24 +183,18 @@ const Contact = () => {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {roleOptions.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
+                                  {roleOptions.map(option => <SelectItem key={option.value} value={option.value}>
                                       {option.label}
-                                    </SelectItem>
-                                  ))}
+                                    </SelectItem>)}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            </FormItem>} />
                       </div>
 
-                      <FormField
-                        control={form.control}
-                        name="subject"
-                        render={({ field }) => (
-                          <FormItem>
+                      <FormField control={form.control} name="subject" render={({
+                    field
+                  }) => <FormItem>
                             <FormLabel>Ämne *</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
@@ -247,56 +203,35 @@ const Contact = () => {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {subjectOptions.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
+                                {subjectOptions.map(option => <SelectItem key={option.value} value={option.value}>
                                     {option.label}
-                                  </SelectItem>
-                                ))}
+                                  </SelectItem>)}
                               </SelectContent>
                             </Select>
                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          </FormItem>} />
 
-                      <FormField
-                        control={form.control}
-                        name="message"
-                        render={({ field }) => (
-                          <FormItem>
+                      <FormField control={form.control} name="message" render={({
+                    field
+                  }) => <FormItem>
                             <FormLabel>Meddelande *</FormLabel>
                             <FormControl>
-                              <Textarea
-                                placeholder="Beskriv hur vi kan hjälpa dig..."
-                                className="min-h-[150px] bg-white/5 border-white/10 resize-none"
-                                {...field}
-                              />
+                              <Textarea placeholder="Beskriv hur vi kan hjälpa dig..." className="min-h-[150px] bg-white/5 border-white/10 resize-none" {...field} />
                             </FormControl>
                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          </FormItem>} />
 
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full h-14 rounded-xl bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all glow-primary"
-                      >
-                        {isSubmitting ? (
-                          <>
+                      <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-xl bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all glow-primary">
+                        {isSubmitting ? <>
                             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                             Skickar...
-                          </>
-                        ) : (
-                          <>
+                          </> : <>
                             <Mail className="w-5 h-5 mr-2" />
                             Skicka meddelande
-                          </>
-                        )}
+                          </>}
                       </Button>
                     </form>
-                  </Form>
-                )}
+                  </Form>}
               </div>
             </div>
 
@@ -322,7 +257,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Plats</p>
-                      <p className="text-white">Stockholm, Sverige</p>
+                      <p className="text-white">Kalmar, Sverige</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -360,8 +295,6 @@ const Contact = () => {
       </div>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Contact;
