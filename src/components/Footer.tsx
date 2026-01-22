@@ -1,9 +1,7 @@
 import { Link } from "react-router-dom";
 import { Github, Twitter, Linkedin, GraduationCap, Mail, MapPin, Phone } from "lucide-react";
-
 const Footer = () => {
-  return (
-    <footer className="w-full border-t border-white/5 bg-black/40 backdrop-blur-2xl mt-auto relative overflow-hidden">
+  return <footer className="w-full border-t border-white/5 bg-black/40 backdrop-blur-2xl mt-auto relative overflow-hidden">
       {/* Decorative Gradient */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
@@ -21,15 +19,9 @@ const Footer = () => {
               Den futuristiska AI-plattformen som transformerar modern utbildning i svenska skolor.
             </p>
             <div className="flex space-x-5">
-              {[Github, Twitter, Linkedin].map((Icon, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-white/10 transition-all border border-white/5"
-                >
+              {[Github, Twitter, Linkedin].map((Icon, i) => <a key={i} href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-white/10 transition-all border border-white/5">
                   <Icon className="h-5 w-5" />
-                </a>
-              ))}
+                </a>)}
             </div>
           </div>
 
@@ -82,7 +74,7 @@ const Footer = () => {
             <ul className="space-y-4 text-base font-medium text-muted-foreground">
               <li className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-primary/60" />
-                <span>kontakt@notera.se</span>
+                <span>kontakt@notera.info</span>
               </li>
               <li className="flex items-center gap-3">
                 <MapPin className="w-5 h-5 text-primary/60" />
@@ -108,8 +100,6 @@ const Footer = () => {
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
