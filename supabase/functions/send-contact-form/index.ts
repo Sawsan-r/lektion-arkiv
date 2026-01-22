@@ -156,66 +156,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Admin email sent:", adminEmailResult);
 
-    // Send confirmation email to sender
-    const confirmationResult = await sendEmail({
-      from: "Notera <onboarding@resend.dev>",
-      to: [email],
-      subject: "Tack för ditt meddelande - Notera",
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center; }
-            .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; }
-            .summary { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; margin: 20px 0; }
-            .summary-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
-            .summary-item:last-child { border-bottom: none; }
-            .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1 style="margin: 0; font-size: 28px;">Tack för ditt meddelande!</h1>
-            </div>
-            <div class="content">
-              <p>Hej ${name}!</p>
-              <p>Vi har mottagit ditt meddelande och återkommer så snart som möjligt, vanligtvis inom 24 timmar.</p>
-              
-              <div class="summary">
-                <h3 style="margin-top: 0; color: #374151;">Ditt ärende</h3>
-                <div class="summary-item">
-                  <span style="color: #6b7280;">Ämne:</span>
-                  <span style="font-weight: 500;">${subjectLabel}</span>
-                </div>
-                ${organization ? `
-                <div class="summary-item">
-                  <span style="color: #6b7280;">Organisation:</span>
-                  <span style="font-weight: 500;">${organization}</span>
-                </div>
-                ` : ''}
-              </div>
-
-              <p>Om du har ytterligare frågor kan du svara direkt på detta mail.</p>
-              
-              <p style="margin-bottom: 0;">
-                Med vänliga hälsningar,<br>
-                <strong>Notera-teamet</strong>
-              </p>
-            </div>
-            <div class="footer">
-              © ${new Date().getFullYear()} Notera. Alla rättigheter förbehållna.
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
-    });
-
-    console.log("Confirmation email sent:", confirmationResult);
+    // Note: Confirmation email to sender is skipped when using unverified domain
+    // The onboarding@resend.dev domain can only send to the account owner's email
+    // To enable confirmation emails, verify your domain at https://resend.com/domains
+    console.log("Skipping confirmation email to sender (domain not verified)");
 
     return new Response(
       JSON.stringify({ success: true, message: "Emails sent successfully" }),
