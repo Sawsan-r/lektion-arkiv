@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
-import { Github, Twitter, Linkedin, GraduationCap, Mail, MapPin, Phone } from "lucide-react";
+import { Github, Twitter, Linkedin, Mail, MapPin, Phone } from "lucide-react";
+import noteraLogo from "@/assets/notera-logo-white.png";
+
 const Footer = () => {
   return <footer className="w-full border-t border-white/5 bg-black/40 backdrop-blur-2xl mt-auto relative overflow-hidden">
       {/* Decorative Gradient */}
@@ -9,12 +11,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-16">
           {/* Brand Section */}
           <div className="md:col-span-4 space-y-8">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center glow-primary">
-                <GraduationCap className="w-6 h-6 text-white" />
-              </div>
-              <span className="font-black text-2xl tracking-tighter text-white">Notera</span>
-            </div>
+            <Link to="/" className="block hover:opacity-80 transition-opacity">
+              <img src={noteraLogo} alt="Notera" className="h-10 w-auto" />
+            </Link>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-xs">
               Den futuristiska AI-plattformen som transformerar modern utbildning i svenska skolor.
             </p>
