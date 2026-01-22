@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { GraduationCap, ArrowLeft, Loader2, Sparkles, ShieldCheck, Mail, Lock, Users } from "lucide-react";
+import { GraduationCap, ArrowLeft, Loader2, Sparkles, ShieldCheck, Mail, Lock, Users, KeyRound } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,23 +19,45 @@ const Auth = () => {
   const { toast } = useToast();
   const { user, isLoading: authLoading, signIn, roles } = useAuth();
 
-  const [mode, setMode] = useState<"login" | "reset">("login");
+  const initialMode = searchParams.get("mode") === "update-password" ? "update-password" : "login";
+  const [mode, setMode] = useState<"login" | "reset" | "update-password">(initialMode);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
   const [resetSent, setResetSent] = useState(false);
   const [isProcessingJoin, setIsProcessingJoin] = useState(false);
+  const [passwordUpdated, setPasswordUpdated] = useState(false);
 
   const joinCode = searchParams.get("joinCode");
 
+  // Handle password recovery token from URL hash
   useEffect(() => {
+    const handlePasswordRecovery = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get("access_token");
+      const type = hashParams.get("type");
+      
+      if (type === "recovery" && accessToken) {
+        setMode("update-password");
+        // Clear the hash from URL
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      }
+    };
+    
+    handlePasswordRecovery();
+  }, []);
+
+  useEffect(() => {
+    if (mode === "update-password") return; // Don't redirect if updating password
+    
     if (user && !authLoading && joinCode && !isProcessingJoin) {
       handleJoinClassAfterLogin();
     } else if (user && !authLoading && roles.length > 0 && !joinCode) {
       redirectBasedOnRole();
     }
-  }, [user, authLoading, roles, joinCode]);
+  }, [user, authLoading, roles, joinCode, mode]);
 
   const handleJoinClassAfterLogin = async () => {
     setIsProcessingJoin(true);
@@ -91,10 +113,19 @@ const Auth = () => {
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
-    try { emailSchema.parse(email); } catch (e) { if (e instanceof z.ZodError) newErrors.email = e.errors[0].message; }
-    if (mode !== "reset") {
+    
+    if (mode === "update-password") {
       try { passwordSchema.parse(password); } catch (e) { if (e instanceof z.ZodError) newErrors.password = e.errors[0].message; }
+      if (password !== confirmPassword) {
+        newErrors.confirmPassword = "Lösenorden matchar inte";
+      }
+    } else {
+      try { emailSchema.parse(email); } catch (e) { if (e instanceof z.ZodError) newErrors.email = e.errors[0].message; }
+      if (mode !== "reset") {
+        try { passwordSchema.parse(password); } catch (e) { if (e instanceof z.ZodError) newErrors.password = e.errors[0].message; }
+      }
     }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -104,7 +135,7 @@ const Auth = () => {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${window.location.origin}/auth?mode=update-password`,
       });
       if (error) throw error;
       setResetSent(true);
@@ -116,12 +147,43 @@ const Auth = () => {
     }
   };
 
+  const handlePasswordUpdate = async () => {
+    if (!validateForm()) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      setPasswordUpdated(true);
+      toast({ title: "Lösenord uppdaterat!", description: "Du kan nu logga in med ditt nya lösenord." });
+      
+      // Sign out and redirect to login
+      await supabase.auth.signOut();
+      setTimeout(() => {
+        setMode("login");
+        setPassword("");
+        setConfirmPassword("");
+        navigate("/auth", { replace: true });
+      }, 2000);
+    } catch (err: any) {
+      toast({ title: "Fel", description: err.message || "Kunde inte uppdatera lösenordet", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (mode === "update-password") {
+      await handlePasswordUpdate();
+      return;
+    }
+    
     if (mode === "reset") {
       await handlePasswordReset();
       return;
     }
+    
     if (!validateForm()) return;
     setIsLoading(true);
 
@@ -143,13 +205,34 @@ const Auth = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading && mode !== "update-password") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
       </div>
     );
   }
+
+  const getTitle = () => {
+    if (mode === "update-password") return "Nytt lösenord";
+    if (mode === "reset") return "Återställ lösenord";
+    return "Välkommen tillbaka";
+  };
+
+  const getDescription = () => {
+    if (mode === "update-password") {
+      return passwordUpdated ? "Ditt lösenord har uppdaterats!" : "Ange ditt nya lösenord";
+    }
+    if (mode === "reset") {
+      return resetSent ? "Kolla din e-post för återställningslänken" : "Ange din e-postadress för att återställa ditt lösenord";
+    }
+    return "Logga in för att fortsätta din AI-resa";
+  };
+
+  const getIcon = () => {
+    if (mode === "update-password") return <KeyRound className="w-8 h-8 text-secondary animate-pulse" />;
+    return <Sparkles className="w-8 h-8 text-secondary animate-pulse" />;
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
@@ -179,76 +262,113 @@ const Auth = () => {
 
           <CardHeader className="text-center space-y-4 pt-10">
             <div className="mx-auto w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-2 border border-white/10">
-              <Sparkles className="w-8 h-8 text-secondary animate-pulse" />
+              {getIcon()}
             </div>
             <CardTitle className="text-4xl font-black tracking-tight text-white">
-              {mode === "reset" ? "Återställ lösenord" : "Välkommen tillbaka"}
+              {getTitle()}
             </CardTitle>
             <CardDescription className="text-lg text-muted-foreground">
-              {mode === "reset"
-                ? resetSent
-                  ? "Kolla din e-post för återställningslänken"
-                  : "Ange din e-postadress för att återställa ditt lösenord"
-                : "Logga in för att fortsätta din AI-resa"
-              }
+              {getDescription()}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="px-10 pb-12">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">E-postadress</Label>
-                <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="din@email.se"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`h-14 pl-12 glass-input rounded-xl text-lg ${errors.email ? "border-destructive" : ""}`}
-                  />
-                </div>
-                {errors.email && <p className="text-sm text-destructive font-medium ml-1">{errors.email}</p>}
-              </div>
-
-              {mode !== "reset" && (
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Lösenord</Label>
-                  <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={`h-14 pl-12 glass-input rounded-xl text-lg ${errors.password ? "border-destructive" : ""}`}
-                    />
+              {mode === "update-password" ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Nytt lösenord</Label>
+                    <div className="relative group">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`h-14 pl-12 glass-input rounded-xl text-lg ${errors.password ? "border-destructive" : ""}`}
+                        disabled={passwordUpdated}
+                      />
+                    </div>
+                    {errors.password && <p className="text-sm text-destructive font-medium ml-1">{errors.password}</p>}
                   </div>
-                  {errors.password && <p className="text-sm text-destructive font-medium ml-1">{errors.password}</p>}
-                </div>
-              )}
 
-              {mode === "login" && (
-                <div className="text-right">
-                  <button
-                    type="button"
-                    onClick={() => { setMode("reset"); setErrors({}); setResetSent(false); }}
-                    className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    Glömt lösenord?
-                  </button>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Bekräfta lösenord</Label>
+                    <div className="relative group">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className={`h-14 pl-12 glass-input rounded-xl text-lg ${errors.confirmPassword ? "border-destructive" : ""}`}
+                        disabled={passwordUpdated}
+                      />
+                    </div>
+                    {errors.confirmPassword && <p className="text-sm text-destructive font-medium ml-1">{errors.confirmPassword}</p>}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">E-postadress</Label>
+                    <div className="relative group">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="din@email.se"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className={`h-14 pl-12 glass-input rounded-xl text-lg ${errors.email ? "border-destructive" : ""}`}
+                      />
+                    </div>
+                    {errors.email && <p className="text-sm text-destructive font-medium ml-1">{errors.email}</p>}
+                  </div>
+
+                  {mode !== "reset" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="password" className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Lösenord</Label>
+                      <div className="relative group">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className={`h-14 pl-12 glass-input rounded-xl text-lg ${errors.password ? "border-destructive" : ""}`}
+                        />
+                      </div>
+                      {errors.password && <p className="text-sm text-destructive font-medium ml-1">{errors.password}</p>}
+                    </div>
+                  )}
+
+                  {mode === "login" && (
+                    <div className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => { setMode("reset"); setErrors({}); setResetSent(false); }}
+                        className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        Glömt lösenord?
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
 
               <Button
                 type="submit"
                 className="w-full h-14 rounded-xl bg-primary text-white font-black text-xl hover:bg-primary/90 transition-all glow-primary hover:scale-[1.02] active:scale-[0.98] mt-4"
-                disabled={isLoading || (mode === "reset" && resetSent)}
+                disabled={isLoading || (mode === "reset" && resetSent) || passwordUpdated}
               >
                 {isLoading ? (
                   <Loader2 className="w-6 h-6 animate-spin" />
+                ) : mode === "update-password" ? (
+                  passwordUpdated ? "Lösenord uppdaterat!" : "Uppdatera lösenord"
                 ) : mode === "reset" ? (
                   resetSent ? "E-post skickad!" : "Skicka återställningslänk"
                 ) : (
@@ -257,32 +377,42 @@ const Auth = () => {
               </Button>
             </form>
 
-            <div className="mt-10 text-center relative">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5" /></div>
-              <span className="relative bg-transparent px-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Eller</span>
-            </div>
+            {mode !== "update-password" && (
+              <>
+                <div className="mt-10 text-center relative">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5" /></div>
+                  <span className="relative bg-transparent px-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Eller</span>
+                </div>
 
-            <div className="mt-8 space-y-4">
-              {mode === "reset" ? (
-                <button
-                  type="button"
-                  onClick={() => { setMode("login"); setErrors({}); setResetSent(false); }}
-                  className="w-full text-lg font-bold text-muted-foreground hover:text-secondary transition-colors text-center"
-                >
-                  Tillbaka till inloggning
-                </button>
-              ) : (
-                <Link to="/join" className="block">
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-14 rounded-xl glass-button border-white/10 font-bold text-lg hover:bg-white/10 gap-3"
-                  >
-                    <Users className="w-5 h-5" />
-                    Elev? Gå med i en klass
-                  </Button>
-                </Link>
-              )}
-            </div>
+                <div className="mt-8 space-y-4">
+                  {mode === "reset" ? (
+                    <button
+                      type="button"
+                      onClick={() => { setMode("login"); setErrors({}); setResetSent(false); }}
+                      className="w-full text-lg font-bold text-muted-foreground hover:text-secondary transition-colors text-center"
+                    >
+                      Tillbaka till inloggning
+                    </button>
+                  ) : (
+                    <Link to="/join" className="block">
+                      <Button 
+                        variant="outline" 
+                        className="w-full h-14 rounded-xl glass-button border-white/10 font-bold text-lg hover:bg-white/10 gap-3"
+                      >
+                        <Users className="w-5 h-5" />
+                        Elev? Gå med i en klass
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </>
+            )}
+
+            {mode === "update-password" && passwordUpdated && (
+              <div className="mt-8 text-center">
+                <p className="text-muted-foreground">Omdirigerar till inloggning...</p>
+              </div>
+            )}
           </CardContent>
 
           <div className="bg-white/5 p-6 border-t border-white/5 flex items-center justify-center gap-4">

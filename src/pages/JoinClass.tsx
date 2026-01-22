@@ -126,6 +126,7 @@ const JoinClass = () => {
     setIsSubmitting(true);
 
     try {
+      // 1. Create the account
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -150,28 +151,48 @@ const JoinClass = () => {
         throw authError;
       }
 
-      if (authData.user) {
-        await supabase
-          .from("user_roles")
-          .insert({
-            user_id: authData.user.id,
-            role: "student" as const,
-          });
+      if (!authData.user) throw new Error("Användare kunde inte skapas");
 
-        await supabase
-          .from("class_members")
-          .insert({
-            class_id: classData.id,
-            student_id: authData.user.id,
-          });
+      // 2. Sign in immediately after signup to establish session
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        toast({
-          title: "Välkommen!",
-          description: `Du har gått med i ${classData.name}`
+      if (signInError) throw signInError;
+
+      // 3. Assign student role
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: authData.user.id,
+          role: "student" as const,
         });
 
-        navigate("/student");
+      if (roleError) {
+        console.error("Role insert error:", roleError);
+        throw new Error("Kunde inte tilldela studentroll");
       }
+
+      // 4. Join the class
+      const { error: memberError } = await supabase
+        .from("class_members")
+        .insert({
+          class_id: classData.id,
+          student_id: authData.user.id,
+        });
+
+      if (memberError) {
+        console.error("Class join error:", memberError);
+        throw new Error("Kunde inte gå med i klassen");
+      }
+
+      toast({
+        title: "Välkommen!",
+        description: `Du har gått med i ${classData.name}`
+      });
+
+      navigate("/student");
     } catch (err: any) {
       console.error("Error creating account:", err);
       toast({

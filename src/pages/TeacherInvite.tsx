@@ -103,6 +103,7 @@ const TeacherInvite = () => {
     setIsSubmitting(true);
 
     try {
+      // 1. Create the account
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: invitation.email,
         password,
@@ -115,35 +116,54 @@ const TeacherInvite = () => {
       });
 
       if (authError) throw authError;
+      if (!authData.user) throw new Error("Användare kunde inte skapas");
 
-      if (authData.user) {
-        await supabase
-          .from("profiles")
-          .update({
-            organization_id: invitation.organization_id,
-            full_name: fullName
-          })
-          .eq("id", authData.user.id);
+      // 2. Sign in immediately after signup to establish session
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: invitation.email,
+        password,
+      });
 
-        await supabase
-          .from("user_roles")
-          .insert({
-            user_id: authData.user.id,
-            role: "teacher" as const,
-          });
+      if (signInError) throw signInError;
 
-        await supabase
-          .from("teacher_invitations")
-          .update({ used_at: new Date().toISOString() })
-          .eq("token", token);
+      // 3. Now the user is logged in - update profile with organization
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          organization_id: invitation.organization_id,
+          full_name: fullName
+        })
+        .eq("id", authData.user.id);
 
-        toast({
-          title: "Konto skapat!",
-          description: "Du kan nu logga in som lärare."
+      if (profileError) {
+        console.error("Profile update error:", profileError);
+      }
+
+      // 4. Assign teacher role
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: authData.user.id,
+          role: "teacher" as const,
         });
 
-        navigate("/auth");
+      if (roleError) {
+        console.error("Role insert error:", roleError);
+        throw new Error("Kunde inte tilldela lärarroll");
       }
+
+      // 5. Mark invitation as used
+      await supabase
+        .from("teacher_invitations")
+        .update({ used_at: new Date().toISOString() })
+        .eq("token", token);
+
+      toast({
+        title: "Konto skapat!",
+        description: "Välkommen som lärare!"
+      });
+
+      navigate("/teacher");
     } catch (err: any) {
       console.error("Error creating account:", err);
       toast({
