@@ -16,6 +16,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import ClassLessons from "./pages/teacher/ClassLessons";
 import RecordLesson from "./pages/teacher/RecordLesson";
+import TeacherLessonView from "./pages/teacher/TeacherLessonView";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import ClassView from "./pages/student/ClassView";
 import LessonView from "./pages/student/LessonView";
@@ -89,6 +90,11 @@ const App = () => (
                 <Route path="/teacher/record/:classId" element={
                   <ProtectedRoute requiredRole="teacher">
                     <RecordLesson />
+                  </ProtectedRoute>
+                } />
+                <Route path="/teacher/lesson/:lessonId" element={
+                  <ProtectedRoute requiredRole="teacher">
+                    <TeacherLessonView />
                   </ProtectedRoute>
                 } />
 

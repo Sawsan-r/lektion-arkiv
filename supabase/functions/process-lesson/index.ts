@@ -170,10 +170,14 @@ serve(async (req) => {
                   text: `Du är en transkriptions- och sammanfattningsassistent. Din uppgift är att ENDAST återge vad som faktiskt sades i inspelningen - lägg INTE till egen information, förklaringar eller antaganden.
 
 UPPGIFT 1 - TRANSKRIPTION:
-Skapa en ordagrann transkription av allt som sägs i inspelningen på svenska.
+Skapa en ordagrann transkription av allt som sägs i inspelningen.
+- Skriv transkriptionen på SAMMA SPRÅK som talades i inspelningen (om det är engelska, skriv på engelska; om det är svenska, skriv på svenska)
+- Inkludera INGA tidsstämplar (som "Minut 1:" eller "[00:01]") i transkriptionen
+- Skriv sammanhängande text utan tidsmarkeringar
 
 UPPGIFT 2 - SAMMANFATTNING:
 Skapa en strukturerad sammanfattning som ENDAST innehåller information som faktiskt nämndes i inspelningen.
+- Skriv sammanfattningen på SAMMA SPRÅK som talades i inspelningen
 
 VIKTIGA REGLER:
 - Sammanfatta BARA det som sades - lägg inte till egen kunskap
@@ -182,12 +186,12 @@ VIKTIGA REGLER:
 - Om något är oklart i inspelningen, skriv att det var oklart istället för att gissa
 - Var en trogen spegel av lektionens innehåll
 - Hitta INTE på exempel eller fakta som inte sades
+- INGEN tidsstämplar i output
 
 Sammanfattningens format:
 - Använd tydliga rubriker (## för huvudrubriker)
 - Använd punktlistor för att göra det lättläst
 - Håll sammanfattningen koncis (200-400 ord)
-- Skriv på svenska
 
 Lektionsinformation:
 - Titel: ${lesson.title}
@@ -196,10 +200,10 @@ Lektionsinformation:
 
 SVARA I FÖLJANDE FORMAT:
 ---TRANSKRIPTION---
-[Ordagrann transkription här]
+[Ordagrann transkription här, på samma språk som inspelningen, UTAN tidsstämplar]
 
 ---SAMMANFATTNING---
-[Sammanfattning av ENDAST det som sades]`,
+[Sammanfattning av ENDAST det som sades, på samma språk som inspelningen]`,
                 },
               ],
             }],
