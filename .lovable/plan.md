@@ -1,295 +1,222 @@
 
-# Plan: Fixa Alla Autentiserings- och Kontaktformulärsproblem
+# Plan: Fixa Testarens Rapporterade Problem
 
-## Identifierade Problem
+## Sammanfattning av Problem och Lösningar
 
-| Problem | Orsak |
-|---------|-------|
-| **1. Lärarroll tilldelas inte** | Efter `signUp` är användaren inte automatiskt inloggad, så `auth.uid()` returnerar null vid RLS-kontroll |
-| **2. Studentroll & klassmedlemskap tilldelas inte** | Samma problem - efterföljande databasoperationer misslyckas tyst |
-| **3. Återställningslänk går till localhost** | Supabase kräver att redirect-URL:en är konfigurerad i Dashboard |
-| **4. Kontaktformulär ger fel** | Resend-domänen är inte verifierad, vilket begränsar vilka mottagare som kan få e-post |
+| Problem | Orsak | Lösning | Prioritet |
+|---------|-------|---------|-----------|
+| 1. Konton utan roll | Supabase e-postbekräftelse förhindrar direkt inloggning efter signUp | Kolla om `authData.session` finns, annars informera användaren | Hög |
+| 2. "Hem" loggar ut | Hem-länken pekar på "/" (landningssidan) | Ändra Hem-länken till respektive dashboard | Hög |
+| 3. Lärare kan ej se inspelning | Lektionskorten i ClassLessons är ej klickbara | Lägg till onClick för att navigera till lektionsvyn | Hög |
+| 7. Student ser 0 lektioner | Koden filtrerar på `status: "completed"` men lektioner har `status: "ready"` | Ändra filtret till `status: "ready"` | Hög |
+| 11. Lösenordsåterställning | Site URL inte konfigurerad i Supabase | Manuell konfiguration krävs | Hög |
+| 4. Lärare vill redigera | Funktion saknas | Lägg till redigeringsformulär för sammanfattning | Medel |
+| 5. Engelska översätts till svenska | AI-prompten säger "på svenska" alltid | Lägg till språkval vid inspelning | Medel |
+| 6. Tidsstämplar före text | AI-quirk | Förbättra AI-prompten | Låg |
+| 8. Sparandet tar tid | Normal uppladdning + AI-tid | Kan optimeras senare, inte en bugg | Låg |
+| 9. Slider fungerar ej | Slider-komponentens default behavior | Kontrollera Slider-props | Låg |
+| 10. Bakgrundsljud | Webbläsar-API begränsning | Informera användaren, ej fixbart i kod | N/A |
 
 ---
 
-## Lösning 1: Fixa Teacher Invite Flow
+## Detaljerade Lösningar
 
-**Problem**: När en lärare skapar konto via inbjudan så görs `signUp`, men efterföljande inserts till `user_roles` och `profiles` misslyckas eftersom användaren inte är inloggad ännu.
+### 1. Konton utan roll - Diagnostik och Fix
 
-**Lösning**: Efter `signUp`, logga in användaren automatiskt och vänta på att sessionen är aktiv innan du gör databasoperationer.
+**Problem:** När e-postbekräftelse är på returnerar `signUp` ingen session direkt.
 
-### Ändringar i `src/pages/TeacherInvite.tsx`:
+**Lösning:**
+- Kontrollera om `authData.session` är null efter signup
+- Om null: visa meddelande att användaren måste bekräfta sin e-post
+- Eller: stäng av e-postbekräftelse i Supabase Dashboard (rekommenderas för denna app)
 
-```typescript
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm() || !invitation || !token) return;
-  setIsSubmitting(true);
+**Filändringar:**
+- `src/pages/TeacherInvite.tsx` - Lägg till session-check
+- `src/pages/JoinClass.tsx` - Samma ändring
 
-  try {
-    // 1. Skapa kontot
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: invitation.email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/teacher`,
-        data: { full_name: fullName },
-      },
-    });
-
-    if (authError) throw authError;
-    if (!authData.user) throw new Error("Användare kunde inte skapas");
-
-    // 2. Logga in direkt efter signup för att få aktiv session
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: invitation.email,
-      password,
-    });
-
-    if (signInError) throw signInError;
-
-    // 3. Nu är användaren inloggad - uppdatera profil
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({
-        organization_id: invitation.organization_id,
-        full_name: fullName
-      })
-      .eq("id", authData.user.id);
-
-    if (profileError) {
-      console.error("Profile update error:", profileError);
-    }
-
-    // 4. Tilldela lärarrollen
-    const { error: roleError } = await supabase
-      .from("user_roles")
-      .insert({
-        user_id: authData.user.id,
-        role: "teacher",
-      });
-
-    if (roleError) {
-      console.error("Role insert error:", roleError);
-      throw new Error("Kunde inte tilldela lärarroll");
-    }
-
-    // 5. Markera inbjudan som använd
-    await supabase
-      .from("teacher_invitations")
-      .update({ used_at: new Date().toISOString() })
-      .eq("token", token);
-
-    toast({
-      title: "Konto skapat!",
-      description: "Välkommen som lärare!"
-    });
-
-    navigate("/teacher");
-  } catch (err: any) {
-    console.error("Error creating account:", err);
-    toast({
-      title: "Fel",
-      description: err.message || "Kunde inte skapa kontot",
-      variant: "destructive"
-    });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+```text
+Förändring i handleSubmit:
+┌────────────────────────────────────────┐
+│ 1. Signup                              │
+│ 2. Check if session exists             │
+│    ├─ YES: signIn and continue         │
+│    └─ NO: Show "bekräfta email" toast  │
+└────────────────────────────────────────┘
 ```
 
 ---
 
-## Lösning 2: Fixa Student Join Flow
+### 2. "Hem" loggar ut - Fix
 
-**Problem**: Samma som för lärare - efter `signUp` är användaren inte inloggad.
+**Problem:** Hem-länken pekar på "/" som är landningssidan, inte dashboarden.
 
-### Ändringar i `src/pages/JoinClass.tsx`:
+**Lösning:** Ändra Hem-länken i DashboardLayout.tsx till att peka på respektive dashboard baserat på roll.
+
+**Filändringar:**
+- `src/components/layout/DashboardLayout.tsx`
 
 ```typescript
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm() || !classData) return;
-  setIsSubmitting(true);
+// Före:
+{ title: "Hem", url: "/", icon: Home }
 
-  try {
-    // 1. Skapa kontot
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/student`,
-        data: { full_name: fullName },
-      },
-    });
-
-    if (authError) {
-      if (authError.message.includes("already registered")) {
-        toast({
-          title: "Konto finns redan",
-          description: "Logga in istället och använd klasskoden för att gå med.",
-          variant: "destructive"
-        });
-        navigate(`/auth?joinCode=${encodeURIComponent(code || '')}`);
-        return;
-      }
-      throw authError;
-    }
-
-    if (!authData.user) throw new Error("Användare kunde inte skapas");
-
-    // 2. Logga in direkt efter signup
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInError) throw signInError;
-
-    // 3. Tilldela studentrollen
-    const { error: roleError } = await supabase
-      .from("user_roles")
-      .insert({
-        user_id: authData.user.id,
-        role: "student",
-      });
-
-    if (roleError) {
-      console.error("Role insert error:", roleError);
-      throw new Error("Kunde inte tilldela studentroll");
-    }
-
-    // 4. Gå med i klassen
-    const { error: memberError } = await supabase
-      .from("class_members")
-      .insert({
-        class_id: classData.id,
-        student_id: authData.user.id,
-      });
-
-    if (memberError) {
-      console.error("Class join error:", memberError);
-      throw new Error("Kunde inte gå med i klassen");
-    }
-
-    toast({
-      title: "Välkommen!",
-      description: `Du har gått med i ${classData.name}`
-    });
-
-    navigate("/student");
-  } catch (err: any) {
-    console.error("Error creating account:", err);
-    toast({
-      title: "Fel",
-      description: err.message || "Kunde inte skapa kontot",
-      variant: "destructive"
-    });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+// Efter:
+// Ta bort "Hem" från nav och behåll bara dashboard-specifika länkar
+// Eller ändra url baserat på roll:
+const homeUrl = roles.includes("system_admin") ? "/admin" 
+              : roles.includes("teacher") ? "/teacher"
+              : roles.includes("student") ? "/student"
+              : "/";
 ```
 
 ---
 
-## Lösning 3: Fixa Password Reset Redirect
+### 3. Lärare kan ej se inspelning - Fix
 
-**Problem**: Supabase ignorerar `redirectTo` om URL:en inte är vitlistad i Dashboard.
+**Problem:** Lektionskorten i ClassLessons.tsx har ingen onClick-handler.
 
-### Åtgärd (manuell konfiguration i Supabase):
+**Lösning:** Lägg till klickbar navigering till lektionsvyn för lektioner med status "ready".
 
-Du behöver lägga till din app-URL i Supabase Dashboard:
+**Filändringar:**
+- `src/pages/teacher/ClassLessons.tsx`
 
-1. Gå till **Supabase Dashboard** → **Authentication** → **URL Configuration**
-2. Ställ in **Site URL** till: `https://id-preview--613e4335-ed5a-4a8a-b445-30b3262597b6.lovable.app`
-3. Lägg till i **Redirect URLs**:
+```typescript
+// Lägg till onClick på lektionskortet:
+<div
+  onClick={() => lesson.status === "ready" && navigate(`/teacher/lesson/${lesson.id}`)}
+  className={`... ${lesson.status === "ready" ? "cursor-pointer" : ""}`}
+>
+```
+
+**Ny route behövs:**
+- Skapa ny sida `src/pages/teacher/LessonView.tsx` (kan återanvända student-versionen)
+- Eller skapa en gemensam route `/lesson/:lessonId` som båda roller kan nå
+
+---
+
+### 4. Lärare vill redigera - Ny Funktion
+
+**Problem:** Läraren kan inte redigera sammanfattningen.
+
+**Lösning:** Lägg till redigeringsläge i lektionsvyn för lärare.
+
+**Filändringar:**
+- Skapa/uppdatera `src/pages/teacher/LessonView.tsx` med redigeringsfunktion
+- Lägg till en "Redigera"-knapp som öppnar ett textarea-formulär
+- Spara ändringar till databasen
+
+---
+
+### 5. Engelska översätts till svenska - Fix
+
+**Problem:** AI-prompten säger alltid "på svenska".
+
+**Lösning:** 
+1. Lägg till språkval i RecordLesson.tsx (dropdown: Svenska/Engelska/Annat)
+2. Skicka språket till edge function
+3. Uppdatera AI-prompten att respektera originalspråket
+
+**Filändringar:**
+- `src/pages/teacher/RecordLesson.tsx` - Lägg till språkval
+- `supabase/functions/process-lesson/index.ts` - Dynamisk prompt
+
+---
+
+### 6. Tidsstämplar före text - Fix
+
+**Problem:** AI lägger ibland till tidsstämplar.
+
+**Lösning:** Förtydliga i prompten att inga tidsstämplar ska inkluderas.
+
+**Filändringar:**
+- `supabase/functions/process-lesson/index.ts`
+
+```typescript
+// Lägg till i prompten:
+"- Inkludera INGA tidsstämplar (som 'Minut 1:') i transkriptionen"
+```
+
+---
+
+### 7. Student ser 0 lektioner - Fix
+
+**Problem:** Koden filtrerar på `status: "completed"` men lektionerna har `status: "ready"`.
+
+**Lösning:** Ändra filtret till `status: "ready"`.
+
+**Filändringar:**
+- `src/pages/student/AllLessons.tsx` - rad 68
+
+```typescript
+// Före:
+.eq("status", "completed")
+
+// Efter:
+.eq("status", "ready")
+```
+
+**OCKSÅ:**
+- `src/pages/student/StudentDashboard.tsx` - rad 83 har samma fel
+
+```typescript
+// Före:
+.eq("status", "ready") // Denna är redan rätt!
+```
+
+Dubbelkolla: StudentDashboard.tsx använder redan "ready", men AllLessons.tsx använder "completed".
+
+---
+
+### 9. Slider fungerar ej för drag - Fix
+
+**Problem:** Slider-komponenten kanske inte hanterar onPointerDown/onPointerMove korrekt.
+
+**Lösning:** Kontrollera att Slider-komponenten från Radix UI är korrekt konfigurerad.
+
+**Filändringar:**
+- `src/pages/student/LessonView.tsx` - Testa med explicit cursor-styling
+
+---
+
+### 11. Lösenordsåterställning - Manuell Konfiguration
+
+**Problem:** Redirect URL går till localhost.
+
+**Lösning (MANUELL - kräver användarens åtgärd):**
+
+1. Gå till Supabase Dashboard
+2. Navigera till **Authentication → URL Configuration**
+3. Ställ in **Site URL**: `https://id-preview--613e4335-ed5a-4a8a-b445-30b3262597b6.lovable.app`
+4. Lägg till i **Redirect URLs**: 
    - `https://id-preview--613e4335-ed5a-4a8a-b445-30b3262597b6.lovable.app/**`
-   - (Och eventuell produktions-URL när den finns)
-
-### Kodändring i `src/pages/Auth.tsx`:
-
-Uppdatera redirect-URL:en till att peka på en dedikerad sida för lösenordsåterställning:
-
-```typescript
-const handlePasswordReset = async () => {
-  if (!validateForm()) return;
-  setIsLoading(true);
-  try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth?mode=update-password`,
-    });
-    if (error) throw error;
-    setResetSent(true);
-    toast({ 
-      title: "E-post skickad!", 
-      description: "Kontrollera din inkorg för att återställa lösenordet." 
-    });
-  } catch (err: any) {
-    toast({ 
-      title: "Fel", 
-      description: err.message || "Kunde inte skicka återställningslänk", 
-      variant: "destructive" 
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
-```
-
-Lägg också till hantering för lösenordsuppdatering i Auth.tsx om `mode=update-password` finns i URL:en.
 
 ---
 
-## Lösning 4: Fixa Contact Form Email
+## Sammanfattning av Filändringar
 
-**Problem**: Resend kräver en verifierad domän för att skicka e-post till andra mottagare.
-
-### Alternativ A: Verifiera domän i Resend (rekommenderat)
-
-1. Gå till **https://resend.com/domains**
-2. Lägg till domänen `notera.info` (eller er domän)
-3. Följ DNS-verifieringsstegen
-4. Uppdatera edge function att använda den verifierade domänen:
-
-```typescript
-// Ändra från:
-from: "Notera <onboarding@resend.dev>",
-
-// Till:
-from: "Notera <noreply@notera.info>",
-```
-
-### Alternativ B: Tillfällig lösning (för testning)
-
-Om domänverifiering tar tid, kan vi temporärt begränsa till att bara skicka till admin-e-posten och skippa bekräftelsemailet till avsändaren.
+| Fil | Ändring |
+|-----|---------|
+| `src/components/layout/DashboardLayout.tsx` | Ändra "Hem"-länken till roll-baserad URL |
+| `src/pages/TeacherInvite.tsx` | Lägg till session-check + felmeddelande |
+| `src/pages/JoinClass.tsx` | Lägg till session-check + felmeddelande |
+| `src/pages/teacher/ClassLessons.tsx` | Gör lektionskort klickbara |
+| `src/pages/teacher/LessonView.tsx` | NY FIL - lektionsvy för lärare med redigeringsfunktion |
+| `src/pages/student/AllLessons.tsx` | Ändra status-filter till "ready" |
+| `src/pages/teacher/RecordLesson.tsx` | Lägg till språkval |
+| `supabase/functions/process-lesson/index.ts` | Dynamisk prompt baserad på språk + inga tidsstämplar |
+| `src/App.tsx` | Lägg till route för `/teacher/lesson/:lessonId` |
 
 ---
 
-## Sammanfattning av Ändringar
+## Manuella Åtgärder (Supabase Dashboard)
 
-| Fil | Åtgärd |
-|-----|--------|
-| `src/pages/TeacherInvite.tsx` | Logga in användaren direkt efter signup innan databasoperationer |
-| `src/pages/JoinClass.tsx` | Logga in användaren direkt efter signup innan databasoperationer |
-| `src/pages/Auth.tsx` | Lägg till hantering för lösenordsuppdatering |
-| `supabase/functions/send-contact-form/index.ts` | Uppdatera `from`-adressen till verifierad domän |
-| **Supabase Dashboard** | Konfigurera Site URL och Redirect URLs |
-| **Resend Dashboard** | Verifiera domänen `notera.info` |
+1. **Lösenordsåterställning:** Konfigurera Site URL och Redirect URLs
+2. **E-postbekräftelse:** Överväg att stänga av för smidigare onboarding (valfritt)
 
 ---
 
-## Tekniska Detaljer
+## Frågor som jag inte kan fixa i kod
 
-### Varför `signUp` inte räcker
-
-När du anropar `supabase.auth.signUp()`:
-- Användaren skapas i `auth.users`
-- En profil skapas automatiskt via trigger (`handle_new_user`)
-- MEN sessionen aktiveras inte automatiskt om e-postbekräftelse är påslagen
-
-Genom att anropa `signInWithPassword()` direkt efter `signUp()`:
-- Sessionen aktiveras
-- `auth.uid()` returnerar korrekt användar-ID
-- RLS-policies fungerar som förväntat
+| Problem | Anledning |
+|---------|-----------|
+| Bakgrundsljud i inspelningar | Webbläsarens MediaRecorder API har begränsad ljudisolering |
+| Sparandet tar tid | Normal latens för upload + AI, kan optimeras med streaming senare |
