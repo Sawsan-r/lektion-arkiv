@@ -33,7 +33,6 @@ import {
     BookOpen,
     Settings,
     LogOut,
-    Home,
     Sparkles,
     ChevronRight,
 } from "lucide-react";
@@ -54,19 +53,8 @@ const DashboardLayout = () => {
     };
 
     const getNavItems = () => {
-        // Determine home URL based on role
-        const homeUrl = roles.includes("system_admin") ? "/admin" 
-                      : roles.includes("teacher") ? "/teacher"
-                      : roles.includes("student") ? "/student"
-                      : "/";
-
-        const commonItems = [
-            { title: "Hem", url: homeUrl, icon: Home },
-        ];
-
         if (roles.includes("system_admin")) {
             return [
-                ...commonItems,
                 { title: "Översikt", url: "/admin", icon: LayoutDashboard },
                 { title: "Användare", url: "/admin/users", icon: Users },
                 { title: "Inställningar", url: "/admin/settings", icon: Settings },
@@ -75,20 +63,18 @@ const DashboardLayout = () => {
 
         if (roles.includes("teacher")) {
             return [
-                ...commonItems,
                 { title: "Översikt", url: "/teacher", icon: LayoutDashboard },
             ];
         }
 
         if (roles.includes("student")) {
             return [
-                ...commonItems,
                 { title: "Översikt", url: "/student", icon: LayoutDashboard },
                 { title: "Alla lektioner", url: "/student/lessons", icon: BookOpen },
             ];
         }
 
-        return commonItems;
+        return [];
     };
 
     const navItems = getNavItems();
