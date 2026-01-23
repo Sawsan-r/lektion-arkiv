@@ -263,8 +263,9 @@ const ClassLessons = () => {
               return (
                 <div
                   key={lesson.id}
-                  className="glass-card p-6 md:p-8 rounded-[2rem] group relative overflow-hidden hover:bg-white/[0.03] transition-all"
+                  className={`glass-card p-6 md:p-8 rounded-[2rem] group relative overflow-hidden hover:bg-white/[0.03] transition-all ${lesson.status === "ready" ? "cursor-pointer" : ""}`}
                   style={{ animationDelay: `${index * 0.1}s` }}
+                  onClick={() => lesson.status === "ready" && navigate(`/teacher/lesson/${lesson.id}`)}
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                     <div className="flex items-center gap-6">

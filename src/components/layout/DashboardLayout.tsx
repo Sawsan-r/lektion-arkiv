@@ -54,8 +54,14 @@ const DashboardLayout = () => {
     };
 
     const getNavItems = () => {
+        // Determine home URL based on role
+        const homeUrl = roles.includes("system_admin") ? "/admin" 
+                      : roles.includes("teacher") ? "/teacher"
+                      : roles.includes("student") ? "/student"
+                      : "/";
+
         const commonItems = [
-            { title: "Hem", url: "/", icon: Home },
+            { title: "Hem", url: homeUrl, icon: Home },
         ];
 
         if (roles.includes("system_admin")) {

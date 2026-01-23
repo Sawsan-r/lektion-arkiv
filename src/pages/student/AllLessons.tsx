@@ -65,7 +65,7 @@ const AllLessons = () => {
           classes!inner(id, name)
         `)
         .in("class_id", classIds)
-        .eq("status", "completed")
+        .eq("status", "ready")
         .order("recorded_at", { ascending: false });
 
       if (lessonsError) throw lessonsError;
