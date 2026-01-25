@@ -1,222 +1,134 @@
 
-# Plan: Fixa Testarens Rapporterade Problem
+# Plan: Fixa Problem med Rolltilldelning
 
-## Sammanfattning av Problem och Lösningar
+## Rotorsaksanalys
 
-| Problem | Orsak | Lösning | Prioritet |
-|---------|-------|---------|-----------|
-| 1. Konton utan roll | Supabase e-postbekräftelse förhindrar direkt inloggning efter signUp | Kolla om `authData.session` finns, annars informera användaren | Hög |
-| 2. "Hem" loggar ut | Hem-länken pekar på "/" (landningssidan) | Ändra Hem-länken till respektive dashboard | Hög |
-| 3. Lärare kan ej se inspelning | Lektionskorten i ClassLessons är ej klickbara | Lägg till onClick för att navigera till lektionsvyn | Hög |
-| 7. Student ser 0 lektioner | Koden filtrerar på `status: "completed"` men lektioner har `status: "ready"` | Ändra filtret till `status: "ready"` | Hög |
-| 11. Lösenordsåterställning | Site URL inte konfigurerad i Supabase | Manuell konfiguration krävs | Hög |
-| 4. Lärare vill redigera | Funktion saknas | Lägg till redigeringsformulär för sammanfattning | Medel |
-| 5. Engelska översätts till svenska | AI-prompten säger "på svenska" alltid | Lägg till språkval vid inspelning | Medel |
-| 6. Tidsstämplar före text | AI-quirk | Förbättra AI-prompten | Låg |
-| 8. Sparandet tar tid | Normal uppladdning + AI-tid | Kan optimeras senare, inte en bugg | Låg |
-| 9. Slider fungerar ej | Slider-komponentens default behavior | Kontrollera Slider-props | Låg |
-| 10. Bakgrundsljud | Webbläsar-API begränsning | Informera användaren, ej fixbart i kod | N/A |
+Efter noggrann undersökning har jag hittat det faktiska problemet:
+
+### Vad som hände med de drabbade användarna
+
+| Användare | Registrerades | Gick med i klass | Har roll |
+|-----------|--------------|------------------|----------|
+| Julia Zidane | 2026-01-21 19:28 | ✅ Ja (mate test 1) | ❌ Nej |
+| lolo bobo | 2026-01-22 12:49 | ❌ Nej | ❌ Nej |
+| Randa | 2026-01-22 19:45 | ❌ Nej | ❌ Nej |
+
+**Notera:** Julia lyckades gå med i en klass men fick ingen roll! Detta är nyckeln till problemet.
+
+### Rotorsaken: Olika RLS-policyer
+
+Jag hittade att RLS-policyerna har olika krav:
+
+| Tabell | Policy | Databas-roll krävs |
+|--------|--------|-------------------|
+| `class_members` | "Students can join classes" | `{public}` ← Tillåter alla |
+| `user_roles` | "Users can insert own student role" | `{authenticated}` ← Kräver autentiserad session |
+
+**Problemet:** När `signUp` körs, även om `signInWithPassword` körs direkt efter, kan det finnas en millisekunds fördröjning innan Postgres-anslutningen uppdateras med den nya JWT-token som har `authenticated` rollen.
+
+- `class_members` insert lyckas eftersom den tillåter `public` roll
+- `user_roles` insert misslyckas eftersom den kräver `authenticated` roll
+
+### Varför det inte alltid händer
+
+Beroende på serverbelastning och timing kan sessionen ibland hinna uppdateras, och ibland inte.
 
 ---
 
-## Detaljerade Lösningar
+## Lösning
 
-### 1. Konton utan roll - Diagnostik och Fix
+### Del 1: Fixa RLS-policyn (Databas)
 
-**Problem:** När e-postbekräftelse är på returnerar `signUp` ingen session direkt.
+Ändra student-rollpolicyn från att kräva `authenticated` till `public`, precis som de andra policyerna. Säkerheten bibehålls genom `auth.uid()` kontrollen i WITH CHECK.
 
-**Lösning:**
-- Kontrollera om `authData.session` är null efter signup
-- Om null: visa meddelande att användaren måste bekräfta sin e-post
-- Eller: stäng av e-postbekräftelse i Supabase Dashboard (rekommenderas för denna app)
+**Nuvarande policy:**
+```sql
+CREATE POLICY "Users can insert own student role"
+ON public.user_roles
+FOR INSERT
+TO authenticated  -- ← Problem: kräver authenticated roll
+WITH CHECK ((user_id = auth.uid()) AND (role = 'student'::app_role));
+```
 
-**Filändringar:**
-- `src/pages/TeacherInvite.tsx` - Lägg till session-check
-- `src/pages/JoinClass.tsx` - Samma ändring
+**Ny policy:**
+```sql
+DROP POLICY "Users can insert own student role" ON public.user_roles;
+
+CREATE POLICY "Users can insert own student role"
+ON public.user_roles
+FOR INSERT
+TO public  -- ← Ändrad: tillåter public (men auth.uid() krävs fortfarande)
+WITH CHECK ((user_id = auth.uid()) AND (role = 'student'::app_role));
+```
+
+### Del 2: Lägg till felhantering i koden (Extra säkerhet)
+
+Uppdatera `JoinClass.tsx` och `TeacherInvite.tsx` för att:
+1. Kontrollera att sessionen verkligen är etablerad innan databasoperationer
+2. Lägga till retry-logik om första försöket misslyckas
+3. Visa tydliga felmeddelanden istället för tysta misslyckanden
 
 ```text
-Förändring i handleSubmit:
-┌────────────────────────────────────────┐
-│ 1. Signup                              │
-│ 2. Check if session exists             │
-│    ├─ YES: signIn and continue         │
-│    └─ NO: Show "bekräfta email" toast  │
-└────────────────────────────────────────┘
+Nytt flöde:
+┌────────────────────────────────────────────┐
+│ 1. signUp()                                │
+│ 2. signInWithPassword()                    │
+│ 3. Kontrollera: supabase.auth.getSession() │
+│    ├─ Session finns? → Fortsätt           │
+│    └─ Ingen session? → Visa fel           │
+│ 4. Insert user_role                        │
+│ 5. Insert class_member (om student)        │
+└────────────────────────────────────────────┘
+```
+
+### Del 3: Fixa befintliga användare (En-gångs SQL)
+
+Kör detta i Supabase SQL Editor för att fixa Julia som redan gått med i en klass:
+
+```sql
+-- Tilldela studentroll till användare som gått med i klasser men saknar roll
+INSERT INTO user_roles (user_id, role)
+SELECT DISTINCT cm.student_id, 'student'::app_role
+FROM class_members cm
+WHERE NOT EXISTS (
+  SELECT 1 FROM user_roles ur WHERE ur.user_id = cm.student_id
+);
 ```
 
 ---
 
-### 2. "Hem" loggar ut - Fix
+## Sammanfattning av åtgärder
 
-**Problem:** Hem-länken pekar på "/" som är landningssidan, inte dashboarden.
-
-**Lösning:** Ändra Hem-länken i DashboardLayout.tsx till att peka på respektive dashboard baserat på roll.
-
-**Filändringar:**
-- `src/components/layout/DashboardLayout.tsx`
-
-```typescript
-// Före:
-{ title: "Hem", url: "/", icon: Home }
-
-// Efter:
-// Ta bort "Hem" från nav och behåll bara dashboard-specifika länkar
-// Eller ändra url baserat på roll:
-const homeUrl = roles.includes("system_admin") ? "/admin" 
-              : roles.includes("teacher") ? "/teacher"
-              : roles.includes("student") ? "/student"
-              : "/";
-```
+| Typ | Åtgärd | Vem gör det |
+|-----|--------|-------------|
+| **Databas** | Uppdatera RLS-policy för student-roll till `public` | Lovable (migration) |
+| **Kod** | Lägg till session-verifiering i JoinClass.tsx | Lovable |
+| **Kod** | Lägg till session-verifiering i TeacherInvite.tsx | Lovable |
+| **Manuellt** | Kör SQL för att fixa Julia (och andra) | Du (i Supabase SQL Editor) |
 
 ---
 
-### 3. Lärare kan ej se inspelning - Fix
+## Tekniska detaljer
 
-**Problem:** Lektionskorten i ClassLessons.tsx har ingen onClick-handler.
+### Varför `public` är säkert
 
-**Lösning:** Lägg till klickbar navigering till lektionsvyn för lektioner med status "ready".
+RLS-policyn har två lager av kontroll:
+1. **TO \<role\>** - Vilken databasroll som får köra frågan
+2. **WITH CHECK** - Logik som måste vara sann för att raden ska sparas
 
-**Filändringar:**
-- `src/pages/teacher/ClassLessons.tsx`
+Även om vi ändrar till `TO public`, så kräver `WITH CHECK` fortfarande:
+- `user_id = auth.uid()` - Användaren måste ange sitt eget ID
+- `role = 'student'::app_role` - Kan endast tilldela studentroll
 
-```typescript
-// Lägg till onClick på lektionskortet:
-<div
-  onClick={() => lesson.status === "ready" && navigate(`/teacher/lesson/${lesson.id}`)}
-  className={`... ${lesson.status === "ready" ? "cursor-pointer" : ""}`}
->
-```
+Om någon försöker fuska:
+- Utan inloggning: `auth.uid()` returnerar `null`, insert misslyckas
+- Fel user_id: `user_id = auth.uid()` blir falskt, insert misslyckas
+- Fel roll: `role = 'student'` blir falskt, insert misslyckas
 
-**Ny route behövs:**
-- Skapa ny sida `src/pages/teacher/LessonView.tsx` (kan återanvända student-versionen)
-- Eller skapa en gemensam route `/lesson/:lessonId` som båda roller kan nå
-
----
-
-### 4. Lärare vill redigera - Ny Funktion
-
-**Problem:** Läraren kan inte redigera sammanfattningen.
-
-**Lösning:** Lägg till redigeringsläge i lektionsvyn för lärare.
-
-**Filändringar:**
-- Skapa/uppdatera `src/pages/teacher/LessonView.tsx` med redigeringsfunktion
-- Lägg till en "Redigera"-knapp som öppnar ett textarea-formulär
-- Spara ändringar till databasen
-
----
-
-### 5. Engelska översätts till svenska - Fix
-
-**Problem:** AI-prompten säger alltid "på svenska".
-
-**Lösning:** 
-1. Lägg till språkval i RecordLesson.tsx (dropdown: Svenska/Engelska/Annat)
-2. Skicka språket till edge function
-3. Uppdatera AI-prompten att respektera originalspråket
-
-**Filändringar:**
-- `src/pages/teacher/RecordLesson.tsx` - Lägg till språkval
-- `supabase/functions/process-lesson/index.ts` - Dynamisk prompt
-
----
-
-### 6. Tidsstämplar före text - Fix
-
-**Problem:** AI lägger ibland till tidsstämplar.
-
-**Lösning:** Förtydliga i prompten att inga tidsstämplar ska inkluderas.
-
-**Filändringar:**
-- `supabase/functions/process-lesson/index.ts`
-
-```typescript
-// Lägg till i prompten:
-"- Inkludera INGA tidsstämplar (som 'Minut 1:') i transkriptionen"
-```
-
----
-
-### 7. Student ser 0 lektioner - Fix
-
-**Problem:** Koden filtrerar på `status: "completed"` men lektionerna har `status: "ready"`.
-
-**Lösning:** Ändra filtret till `status: "ready"`.
-
-**Filändringar:**
-- `src/pages/student/AllLessons.tsx` - rad 68
-
-```typescript
-// Före:
-.eq("status", "completed")
-
-// Efter:
-.eq("status", "ready")
-```
-
-**OCKSÅ:**
-- `src/pages/student/StudentDashboard.tsx` - rad 83 har samma fel
-
-```typescript
-// Före:
-.eq("status", "ready") // Denna är redan rätt!
-```
-
-Dubbelkolla: StudentDashboard.tsx använder redan "ready", men AllLessons.tsx använder "completed".
-
----
-
-### 9. Slider fungerar ej för drag - Fix
-
-**Problem:** Slider-komponenten kanske inte hanterar onPointerDown/onPointerMove korrekt.
-
-**Lösning:** Kontrollera att Slider-komponenten från Radix UI är korrekt konfigurerad.
-
-**Filändringar:**
-- `src/pages/student/LessonView.tsx` - Testa med explicit cursor-styling
-
----
-
-### 11. Lösenordsåterställning - Manuell Konfiguration
-
-**Problem:** Redirect URL går till localhost.
-
-**Lösning (MANUELL - kräver användarens åtgärd):**
-
-1. Gå till Supabase Dashboard
-2. Navigera till **Authentication → URL Configuration**
-3. Ställ in **Site URL**: `https://id-preview--613e4335-ed5a-4a8a-b445-30b3262597b6.lovable.app`
-4. Lägg till i **Redirect URLs**: 
-   - `https://id-preview--613e4335-ed5a-4a8a-b445-30b3262597b6.lovable.app/**`
-
----
-
-## Sammanfattning av Filändringar
+### Filändringar
 
 | Fil | Ändring |
 |-----|---------|
-| `src/components/layout/DashboardLayout.tsx` | Ändra "Hem"-länken till roll-baserad URL |
-| `src/pages/TeacherInvite.tsx` | Lägg till session-check + felmeddelande |
-| `src/pages/JoinClass.tsx` | Lägg till session-check + felmeddelande |
-| `src/pages/teacher/ClassLessons.tsx` | Gör lektionskort klickbara |
-| `src/pages/teacher/LessonView.tsx` | NY FIL - lektionsvy för lärare med redigeringsfunktion |
-| `src/pages/student/AllLessons.tsx` | Ändra status-filter till "ready" |
-| `src/pages/teacher/RecordLesson.tsx` | Lägg till språkval |
-| `supabase/functions/process-lesson/index.ts` | Dynamisk prompt baserad på språk + inga tidsstämplar |
-| `src/App.tsx` | Lägg till route för `/teacher/lesson/:lessonId` |
-
----
-
-## Manuella Åtgärder (Supabase Dashboard)
-
-1. **Lösenordsåterställning:** Konfigurera Site URL och Redirect URLs
-2. **E-postbekräftelse:** Överväg att stänga av för smidigare onboarding (valfritt)
-
----
-
-## Frågor som jag inte kan fixa i kod
-
-| Problem | Anledning |
-|---------|-----------|
-| Bakgrundsljud i inspelningar | Webbläsarens MediaRecorder API har begränsad ljudisolering |
-| Sparandet tar tid | Normal latens för upload + AI, kan optimeras med streaming senare |
+| `src/pages/JoinClass.tsx` | Lägg till session-verifiering efter sign in |
+| `src/pages/TeacherInvite.tsx` | Samma som ovan |
+| **Databasmigration** | Uppdatera RLS-policy för user_roles |
