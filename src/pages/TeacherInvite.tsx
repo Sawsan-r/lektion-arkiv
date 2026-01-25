@@ -119,14 +119,36 @@ const TeacherInvite = () => {
       if (!authData.user) throw new Error("Användare kunde inte skapas");
 
       // 2. Sign in immediately after signup to establish session
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: invitation.email,
         password,
       });
 
-      if (signInError) throw signInError;
+      if (signInError) {
+        console.error("Sign in after signup failed:", signInError);
+        toast({
+          title: "Sessionsfel",
+          description: "Kunde inte logga in efter registrering. Försök logga in manuellt.",
+          variant: "destructive"
+        });
+        navigate("/auth");
+        return;
+      }
 
-      // 3. Now the user is logged in - update profile with organization
+      // 3. Verify session is established
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        console.error("No session after sign in");
+        toast({
+          title: "Sessionsfel",
+          description: "Kunde inte etablera session. Försök logga in manuellt.",
+          variant: "destructive"
+        });
+        navigate("/auth");
+        return;
+      }
+
+      // 4. Now the user is logged in - update profile with organization
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -139,20 +161,28 @@ const TeacherInvite = () => {
         console.error("Profile update error:", profileError);
       }
 
-      // 4. Assign teacher role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: authData.user.id,
-          role: "teacher" as const,
-        });
+      // 5. Assign teacher role (with retry logic)
+      let roleInserted = false;
+      for (let attempt = 0; attempt < 3 && !roleInserted; attempt++) {
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert({
+            user_id: authData.user.id,
+            role: "teacher" as const,
+          });
 
-      if (roleError) {
-        console.error("Role insert error:", roleError);
-        throw new Error("Kunde inte tilldela lärarroll");
+        if (!roleError) {
+          roleInserted = true;
+        } else if (attempt < 2) {
+          console.warn(`Role insert attempt ${attempt + 1} failed, retrying...`, roleError);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        } else {
+          console.error("Role insert error after retries:", roleError);
+          throw new Error("Kunde inte tilldela lärarroll");
+        }
       }
 
-      // 5. Mark invitation as used
+      // 6. Mark invitation as used
       await supabase
         .from("teacher_invitations")
         .update({ used_at: new Date().toISOString() })

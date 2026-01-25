@@ -154,37 +154,75 @@ const JoinClass = () => {
       if (!authData.user) throw new Error("Användare kunde inte skapas");
 
       // 2. Sign in immediately after signup to establish session
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) throw signInError;
-
-      // 3. Assign student role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: authData.user.id,
-          role: "student" as const,
+      if (signInError) {
+        console.error("Sign in after signup failed:", signInError);
+        toast({
+          title: "Sessionsfel",
+          description: "Kunde inte logga in efter registrering. Försök logga in manuellt.",
+          variant: "destructive"
         });
-
-      if (roleError) {
-        console.error("Role insert error:", roleError);
-        throw new Error("Kunde inte tilldela studentroll");
+        navigate("/auth");
+        return;
       }
 
-      // 4. Join the class
-      const { error: memberError } = await supabase
-        .from("class_members")
-        .insert({
-          class_id: classData.id,
-          student_id: authData.user.id,
+      // 3. Verify session is established
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        console.error("No session after sign in");
+        toast({
+          title: "Sessionsfel", 
+          description: "Kunde inte etablera session. Försök logga in manuellt.",
+          variant: "destructive"
         });
+        navigate("/auth");
+        return;
+      }
 
-      if (memberError) {
-        console.error("Class join error:", memberError);
-        throw new Error("Kunde inte gå med i klassen");
+      // 4. Assign student role (with retry logic)
+      let roleInserted = false;
+      for (let attempt = 0; attempt < 3 && !roleInserted; attempt++) {
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert({
+            user_id: authData.user.id,
+            role: "student" as const,
+          });
+
+        if (!roleError) {
+          roleInserted = true;
+        } else if (attempt < 2) {
+          console.warn(`Role insert attempt ${attempt + 1} failed, retrying...`, roleError);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        } else {
+          console.error("Role insert error after retries:", roleError);
+          throw new Error("Kunde inte tilldela studentroll");
+        }
+      }
+
+      // 5. Join the class (with retry logic)
+      let classJoined = false;
+      for (let attempt = 0; attempt < 3 && !classJoined; attempt++) {
+        const { error: memberError } = await supabase
+          .from("class_members")
+          .insert({
+            class_id: classData.id,
+            student_id: authData.user.id,
+          });
+
+        if (!memberError) {
+          classJoined = true;
+        } else if (attempt < 2) {
+          console.warn(`Class join attempt ${attempt + 1} failed, retrying...`, memberError);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        } else {
+          console.error("Class join error after retries:", memberError);
+          throw new Error("Kunde inte gå med i klassen");
+        }
       }
 
       toast({
