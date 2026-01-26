@@ -34,19 +34,15 @@ const Auth = () => {
 
   // Handle password recovery token from URL hash
   useEffect(() => {
-    const handlePasswordRecovery = async () => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get("access_token");
-      const type = hashParams.get("type");
-      
-      if (type === "recovery" && accessToken) {
-        setMode("update-password");
-        // Clear the hash from URL
-        window.history.replaceState(null, "", window.location.pathname + window.location.search);
-      }
-    };
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get("access_token");
+    const type = hashParams.get("type");
     
-    handlePasswordRecovery();
+    if (type === "recovery" && accessToken) {
+      setMode("update-password");
+      // DON'T clear the hash - let Supabase's onAuthStateChange process it
+      // Supabase will automatically establish a session from the recovery token
+    }
   }, []);
 
   useEffect(() => {
@@ -149,6 +145,19 @@ const Auth = () => {
 
   const handlePasswordUpdate = async () => {
     if (!validateForm()) return;
+    
+    // Verify we have an active session (established from recovery token)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ 
+        title: "Sessionsfel", 
+        description: "Ingen aktiv session. Begär en ny återställningslänk.",
+        variant: "destructive" 
+      });
+      setMode("reset");
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
