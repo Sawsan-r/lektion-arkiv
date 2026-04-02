@@ -281,7 +281,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <p className="font-medium text-white">Är Notera gratis?</p>
-                    <p className="text-muted-foreground">Under pilotperioden är det kostnadsfritt för skolor att testa plattformen.</p>
+                    <p className="text-muted-foreground">Vi har ett specialerbjudande under pilotperioden. Kontakta oss på <a href="mailto:notera.info@gmail.com" className="text-primary hover:underline">notera.info@gmail.com</a> för mer information.</p>
                   </div>
                   <div>
                     <p className="font-medium text-white">Hur är det med GDPR?</p>
