@@ -79,10 +79,6 @@ const Footer = () => {
                 <MapPin className="w-5 h-5 text-primary/60" />
                 <span>Kalmar, Sverige</span>
               </li>
-              <li className="flex items-center gap-3">
-                <Phone className="w-5 h-5 text-primary/60" />
-                <span>+46 (0) 8 123 45 67</span>
-              </li>
             </ul>
           </div>
         </div>
