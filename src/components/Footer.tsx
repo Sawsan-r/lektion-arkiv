@@ -18,9 +18,9 @@ const Footer = () => {
               Den futuristiska AI-plattformen som transformerar modern utbildning i svenska skolor.
             </p>
             <div className="flex space-x-5">
-              {[Github, Twitter, Linkedin].map((Icon, i) => <a key={i} href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-white/10 transition-all border border-white/5">
+            {[Github, Twitter, Linkedin].map((Icon, i) => <div key={i} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-muted-foreground border border-white/5">
                   <Icon className="h-5 w-5" />
-                </a>)}
+                </div>)}
             </div>
           </div>
 
