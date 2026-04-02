@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Github, Twitter, Linkedin, Mail, MapPin, Phone } from "lucide-react";
+import { Github, Twitter, Linkedin, Mail, MapPin } from "lucide-react";
 import noteraLogo from "@/assets/notera-logo-white.png";
 
 const Footer = () => {
@@ -73,15 +73,11 @@ const Footer = () => {
             <ul className="space-y-4 text-base font-medium text-muted-foreground">
               <li className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-primary/60" />
-                <span>kontakt@notera.info</span>
+                <span>notera.info@gmail.com</span>
               </li>
               <li className="flex items-center gap-3">
                 <MapPin className="w-5 h-5 text-primary/60" />
                 <span>Kalmar, Sverige</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone className="w-5 h-5 text-primary/60" />
-                <span>+46 (0) 8 123 45 67</span>
               </li>
             </ul>
           </div>
