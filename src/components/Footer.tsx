@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Github, Twitter, Linkedin, Mail, MapPin, Phone } from "lucide-react";
+import { Github, Twitter, Linkedin, Mail, MapPin } from "lucide-react";
 import noteraLogo from "@/assets/notera-logo-white.png";
 
 const Footer = () => {

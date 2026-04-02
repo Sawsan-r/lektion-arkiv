@@ -100,7 +100,7 @@ const Pricing = () => {
           <h2 className="text-3xl font-black tracking-tighter text-white">Har du frågor?</h2>
           <p className="text-lg text-muted-foreground">
             Kontakta oss på{" "}
-            <a href="mailto:kontakt@notera.se" className="text-primary hover:underline font-bold">kontakt@notera.info</a>{" "}
+            <a href="mailto:notera.info@gmail.com" className="text-primary hover:underline font-bold">notera.info@gmail.com</a>{" "}
             så hjälper vi dig att hitta rätt lösning för din skola.
           </p>
         </div>
