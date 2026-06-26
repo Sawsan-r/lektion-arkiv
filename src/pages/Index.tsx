@@ -87,6 +87,45 @@ const Index = () => {
         "Join thousands of forward-thinking educators using Notera to build the school of the future today.",
       ctaFinalButton: "Get started now",
     },
+    de: {
+      badge: "KI-GESTÜTZTES LERNEN FÜR SCHWEDISCHE SCHULEN",
+      heroTitle1: "Das Klassenzimmer",
+      heroTitle2: "von Morgen",
+      heroDesc:
+        "Revolutionieren Sie Ihren Unterricht mit KI-gestützten Einblicken. Notera transkribiert, fasst zusammen und analysiert Ihre Lektionen in Echtzeit – damit Sie sich auf Ihre Schüler konzentrieren können.",
+      ctaJoin: "Als Schüler beitreten",
+      ctaContact: "Lehrer? Kontaktieren Sie uns",
+      stats: [
+        { label: "Aktive Nutzer", value: "10k+" },
+        { label: "Aufgezeichnete Lektionen", value: "50k+" },
+        { label: "KI-Genauigkeit", value: "99.9%" },
+        { label: "Gesparte Zeit", value: "1000h+" },
+      ],
+      featuresTitle1: "Angetrieben von",
+      featuresTitle2: "KI der nächsten Generation",
+      featuresDesc: "Entdecken Sie Funktionen, die für die moderne schwedische Bildungslandschaft entwickelt wurden.",
+      features: [
+        {
+          title: "Sofortige Transkription",
+          description:
+            "Fortschrittliche Spracherkennung in Echtzeit mit voller schwedischer Unterstützung und automatischer Sprechererkennung.",
+        },
+        {
+          title: "Sichere Speicherung",
+          description:
+            "Unternehmenstaugliche Verschlüsselung und vollständige DSGVO-Konformität sorgen dafür, dass alle Schuldaten privat bleiben.",
+        },
+        {
+          title: "Intelligente Zusammenfassungen",
+          description: "KI-generierte Kernpunkte, Konzept-Erklärungen und Aufgaben aus jeder Lektion.",
+        },
+      ],
+      ctaFinal1: "Bereit, Ihr",
+      ctaFinal2: "Klassenzimmer zu erweitern?",
+      ctaFinalDesc:
+        "Schließen Sie sich Tausenden zukunftsorientierter Pädagogen an, die Notera nutzen, um die Schule der Zukunft bereits heute zu schaffen.",
+      ctaFinalButton: "Jetzt loslegen",
+    },
   }[language];
 
   const icons = [Globe, Play, Cpu, Zap];
