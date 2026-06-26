@@ -1,8 +1,59 @@
 import { Link } from "react-router-dom";
 import { Github, Twitter, Linkedin, Mail, MapPin } from "lucide-react";
+import { useLanguage } from "@/hooks/useLanguage";
 import noteraLogo from "@/assets/notera-logo-white.png";
 
 const Footer = () => {
+  const { language } = useLanguage();
+
+  const t = {
+    sv: {
+      description: "Den futuristiska AI-plattformen som transformerar modern utbildning i svenska skolor.",
+      product: "Produkt",
+      home: "Hem",
+      features: "Funktioner",
+      pricing: "Priser",
+      company: "Företag",
+      about: "Om oss",
+      terms: "Användarvillkor",
+      privacy: "Integritetspolicy",
+      contact: "Kontakt",
+      location: "Kalmar, Sverige",
+      rights: "Alla rättigheter förbehållna.",
+      status: "System Status: Optimal",
+    },
+    en: {
+      description: "The futuristic AI platform transforming modern education in Swedish schools.",
+      product: "Product",
+      home: "Home",
+      features: "Features",
+      pricing: "Pricing",
+      company: "Company",
+      about: "About",
+      terms: "Terms",
+      privacy: "Privacy",
+      contact: "Contact",
+      location: "Kalmar, Sweden",
+      rights: "All rights reserved.",
+      status: "System Status: Optimal",
+    },
+    de: {
+      description: "Die futuristische KI-Plattform, die die moderne Bildung in schwedischen Schulen transformiert.",
+      product: "Produkt",
+      home: "Startseite",
+      features: "Funktionen",
+      pricing: "Preise",
+      company: "Unternehmen",
+      about: "Über uns",
+      terms: "Nutzungsbedingungen",
+      privacy: "Datenschutz",
+      contact: "Kontakt",
+      location: "Kalmar, Schweden",
+      rights: "Alle Rechte vorbehalten.",
+      status: "Systemstatus: Optimal",
+    },
+  }[language];
+
   return <footer className="w-full border-t border-white/5 bg-black/40 backdrop-blur-2xl mt-auto relative overflow-hidden">
       {/* Decorative Gradient */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
@@ -15,7 +66,7 @@ const Footer = () => {
               <img src={noteraLogo} alt="Notera" className="h-10 w-auto" />
             </Link>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-xs">
-              Den futuristiska AI-plattformen som transformerar modern utbildning i svenska skolor.
+              {t.description}
             </p>
             <div className="flex space-x-5">
             {[Github, Twitter, Linkedin].map((Icon, i) => <div key={i} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-muted-foreground border border-white/5">
@@ -26,42 +77,42 @@ const Footer = () => {
 
           {/* Links Sections */}
           <div className="md:col-span-2 space-y-6">
-            <h4 className="text-sm font-black uppercase tracking-[0.2em] text-white">Produkt</h4>
+            <h4 className="text-sm font-black uppercase tracking-[0.2em] text-white">{t.product}</h4>
             <ul className="space-y-4 text-base font-medium text-muted-foreground">
               <li>
                 <Link to="/" className="hover:text-primary transition-colors">
-                  Hem
+                  {t.home}
                 </Link>
               </li>
               <li>
                 <Link to="/features" className="hover:text-primary transition-colors">
-                  Funktioner
+                  {t.features}
                 </Link>
               </li>
               <li>
                 <Link to="/pricing" className="hover:text-primary transition-colors">
-                  Priser
+                  {t.pricing}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div className="md:col-span-2 space-y-6">
-            <h4 className="text-sm font-black uppercase tracking-[0.2em] text-white">Företag</h4>
+            <h4 className="text-sm font-black uppercase tracking-[0.2em] text-white">{t.company}</h4>
             <ul className="space-y-4 text-base font-medium text-muted-foreground">
               <li>
                 <Link to="/about" className="hover:text-primary transition-colors">
-                  Om oss
+                  {t.about}
                 </Link>
               </li>
               <li>
                 <Link to="/terms" className="hover:text-primary transition-colors">
-                  Användarvillkor
+                  {t.terms}
                 </Link>
               </li>
               <li>
                 <Link to="/privacy" className="hover:text-primary transition-colors">
-                  Integritetspolicy
+                  {t.privacy}
                 </Link>
               </li>
             </ul>
@@ -69,7 +120,7 @@ const Footer = () => {
 
           {/* Contact Section */}
           <div className="md:col-span-4 space-y-6">
-            <h4 className="text-sm font-black uppercase tracking-[0.2em] text-white">Kontakt</h4>
+            <h4 className="text-sm font-black uppercase tracking-[0.2em] text-white">{t.contact}</h4>
             <ul className="space-y-4 text-base font-medium text-muted-foreground">
               <li className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-primary/60" />
@@ -77,7 +128,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center gap-3">
                 <MapPin className="w-5 h-5 text-primary/60" />
-                <span>Kalmar, Sverige</span>
+                <span>{t.location}</span>
               </li>
             </ul>
           </div>
@@ -85,12 +136,12 @@ const Footer = () => {
 
         <div className="mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-            &copy; {new Date().getFullYear()} Notera. Alla rättigheter förbehållna.
+            &copy; {new Date().getFullYear()} Notera. {t.rights}
           </p>
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-              System Status: Optimal
+              {t.status}
             </span>
           </div>
         </div>
