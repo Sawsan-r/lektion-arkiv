@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 
-export type Language = "sv" | "en";
+export type Language = "sv" | "en" | "de";
 
 interface LanguageContextType {
   language: Language;
@@ -9,6 +9,8 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+
+const LANG_CYCLE: Language[] = ["sv", "en", "de"];
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLanguageState] = useState<Language>(() => {
@@ -21,7 +23,10 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   }, [language]);
 
   const setLanguage = (lang: Language) => setLanguageState(lang);
-  const toggleLanguage = () => setLanguageState((l) => (l === "sv" ? "en" : "sv"));
+  const toggleLanguage = () => setLanguageState((l) => {
+    const i = LANG_CYCLE.indexOf(l);
+    return LANG_CYCLE[(i + 1) % LANG_CYCLE.length];
+  });
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage }}>
@@ -35,3 +40,4 @@ export const useLanguage = () => {
   if (!ctx) throw new Error("useLanguage must be used within LanguageProvider");
   return ctx;
 };
+
