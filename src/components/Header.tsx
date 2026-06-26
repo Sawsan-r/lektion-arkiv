@@ -28,6 +28,15 @@ const Header = () => {
       overview: "My dashboard",
       login: "Log in",
       getStarted: "Get started",
+      switchTo: "Deutsch",
+    },
+    de: {
+      features: "Funktionen",
+      pricing: "Preise",
+      about: "Über uns",
+      overview: "Mein Dashboard",
+      login: "Anmelden",
+      getStarted: "Loslegen",
       switchTo: "Svenska",
     },
   }[language];
