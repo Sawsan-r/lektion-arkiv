@@ -1,15 +1,22 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogIn, Menu, X, Globe } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { LogIn, Menu, X, Globe, Check } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useLanguage } from "@/hooks/useLanguage";
+import { useLanguage, Language } from "@/hooks/useLanguage";
+import { cn } from "@/lib/utils";
 import noteraLogo from "@/assets/notera-logo-white.png";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, roles } = useAuth();
-  const { language, toggleLanguage } = useLanguage();
+  const { language, setLanguage } = useLanguage();
 
   const t = {
     sv: {
@@ -19,7 +26,6 @@ const Header = () => {
       overview: "Min översikt",
       login: "Logga in",
       getStarted: "Kom igång",
-      switchTo: "English",
     },
     en: {
       features: "Features",
@@ -28,7 +34,6 @@ const Header = () => {
       overview: "My dashboard",
       login: "Log in",
       getStarted: "Get started",
-      switchTo: "Deutsch",
     },
     de: {
       features: "Funktionen",
@@ -37,9 +42,14 @@ const Header = () => {
       overview: "Mein Dashboard",
       login: "Anmelden",
       getStarted: "Loslegen",
-      switchTo: "Svenska",
     },
   }[language];
+
+  const LANGUAGES: { code: Language; label: string }[] = [
+    { code: "sv", label: "Svenska" },
+    { code: "en", label: "English" },
+    { code: "de", label: "Deutsch" },
+  ];
 
   const getDashboardLink = () => {
     if (roles.includes('system_admin')) return '/admin';
@@ -49,15 +59,32 @@ const Header = () => {
   };
 
   const LangToggle = ({ className = "" }: { className?: string }) => (
-    <button
-      onClick={toggleLanguage}
-      className={`inline-flex items-center gap-2 px-3 h-9 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-white ${className}`}
-      aria-label="Switch language"
-      title={t.switchTo}
-    >
-      <Globe className="w-3.5 h-3.5" />
-      {language.toUpperCase()}
-    </button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={`inline-flex items-center gap-2 px-3 h-9 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-white ${className}`}
+          aria-label="Switch language"
+        >
+          <Globe className="w-3.5 h-3.5" />
+          {language.toUpperCase()}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[9rem] border-white/10 bg-background/95 backdrop-blur-xl">
+        {LANGUAGES.map((lang) => (
+          <DropdownMenuItem
+            key={lang.code}
+            onClick={() => setLanguage(lang.code)}
+            className={cn(
+              "text-xs font-bold uppercase tracking-widest cursor-pointer focus:bg-white/10 focus:text-white",
+              language === lang.code && "bg-white/10 text-white"
+            )}
+          >
+            {lang.label}
+            {language === lang.code && <Check className="ml-auto h-4 w-4 text-primary" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   return (
